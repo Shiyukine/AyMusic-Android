@@ -14,10 +14,11 @@
         tools:layout_editor_absoluteY="338dp"
         tools:visibility="invisible" />
 
-    <WebView
+    <com.aketsuky.aymusic.MediaWebView
         android:id="@+id/wb"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         tools:layout_editor_absoluteX="127dp"
-        tools:layout_editor_absoluteY="338dp" />
+        tools:layout_editor_absoluteY="338dp"
+        android:focusable="true"/>
 </androidx.constraintlayout.widget.ConstraintLayout>
