@@ -8,9 +8,13 @@ import android.webkit.WebView;
 
 public class MediaButtonIntentReceiver extends BroadcastReceiver {
 
+    public MediaButtonIntentReceiver() {
+
+    }
+
     WebView wb;
 
-    MediaButtonIntentReceiver(WebView wb) {
+    public void setWb(WebView wb) {
         this.wb = wb;
     }
 

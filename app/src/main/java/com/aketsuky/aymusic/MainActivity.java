@@ -78,68 +78,38 @@ public class MainActivity extends AppCompatActivity {
         MediaWebView webView = findViewById(R.id.wb);
         MainActivity main = this;
         mGetContent = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), (result) -> {
-                    Uri uri = result.getData().getData();
-                    if (result.getResultCode() == RESULT_OK) {
-                        final int takeFlags = result.getData().getFlags()
-                                & (Intent.FLAG_GRANT_READ_URI_PERMISSION
-                                | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-                        getContentResolver().takePersistableUriPermission(uri, takeFlags);
-                        if (uri != null) {
-                            String path = new File(uri.getPath()).getAbsolutePath();
+                    if (result.getData() != null) {
+                        Uri uri = result.getData().getData();
+                        if (result.getResultCode() == RESULT_OK) {
+                            final int takeFlags = result.getData().getFlags()
+                                    & (Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                    | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                            getContentResolver().takePersistableUriPermission(uri, takeFlags);
+                            if (uri != null) {
+                                String path = new File(uri.getPath()).getAbsolutePath();
 
-                            if (path != null) {
-                                String filename;
-                                Cursor cursor = getContentResolver().query(uri, null, null, null, null);
+                                if (path != null) {
+                                    String filename;
+                                    Cursor cursor = getContentResolver().query(uri, null, null, null, null);
 
-                                if (cursor == null) filename = uri.getPath();
-                                else {
-                                    cursor.moveToFirst();
-                                    int idx = cursor.getColumnIndex(MediaStore.Files.FileColumns.DISPLAY_NAME);
-                                    filename = cursor.getString(idx);
-                                    cursor.close();
+                                    if (cursor == null) filename = uri.getPath();
+                                    else {
+                                        cursor.moveToFirst();
+                                        int idx = cursor.getColumnIndex(MediaStore.Files.FileColumns.DISPLAY_NAME);
+                                        filename = cursor.getString(idx);
+                                        cursor.close();
+                                    }
+
+                                    String name = filename.substring(0, filename.lastIndexOf("."));
+                                    String extension = filename.substring(filename.lastIndexOf(".") + 1);
+                                    webView.evaluateJavascript("listeners.filePickerCallback([`" + uri.toString() + "." + extension + "`])", null);
                                 }
-
-                                String name = filename.substring(0, filename.lastIndexOf("."));
-                                String extension = filename.substring(filename.lastIndexOf(".") + 1);
-                                webView.evaluateJavascript("listeners.filePickerCallback([`" + uri.toString() + "." + extension + "`])", null);
-                            }
-                        } else {
-                            webView.evaluateJavascript("listeners.filePickerCallback([])", null);
-                        }
-                    }
-                }
-                /*new ActivityResultCallback<Uri>() {
-                    @Override
-                    public void onActivityResult(Uri uri) {
-                        final int takeFlags = getIntent().getFlags()
-                                & (Intent.FLAG_GRANT_READ_URI_PERMISSION
-                                | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-                        getContentResolver().takePersistableUriPermission(uri, takeFlags);
-                        if(uri != null) {
-                            String path = new File(uri.getPath()).getAbsolutePath();
-
-                            if(path != null){
-                                String filename;
-                                Cursor cursor = getContentResolver().query(uri,null,null,null,null);
-
-                                if(cursor == null) filename=uri.getPath();
-                                else{
-                                    cursor.moveToFirst();
-                                    int idx = cursor.getColumnIndex(MediaStore.Files.FileColumns.DISPLAY_NAME);
-                                    filename = cursor.getString(idx);
-                                    cursor.close();
-                                }
-
-                                String name = filename.substring(0,filename.lastIndexOf("."));
-                                String extension = filename.substring(filename.lastIndexOf(".")+1);
-                                webView.evaluateJavascript("listeners.filePickerCallback([`" + uri.toString() + "." + extension + "`])", null);
+                            } else {
+                                webView.evaluateJavascript("listeners.filePickerCallback([])", null);
                             }
                         }
-                        else {
-                            webView.evaluateJavascript("listeners.filePickerCallback([])", null);
-                        }
                     }
-                }*/);
+                });
         actualWb = webView;
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
