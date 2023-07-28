@@ -1,21 +1,25 @@
 package com.aketsuky.aymusic;
 
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.Activity;
 import android.content.Intent;
 import android.content.res.AssetManager;
+import android.database.Cursor;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Debug;
 import android.os.Handler;
+import android.provider.MediaStore;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
-import android.view.WindowInsets;
-import android.view.WindowInsetsController;
 import android.view.WindowManager;
 import android.webkit.CookieManager;
 import android.webkit.MimeTypeMap;
@@ -27,32 +31,30 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
-import okhttp3.Interceptor;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
-
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.IOException;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpCookie;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLConnection;
-import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 public class MainActivity extends AppCompatActivity {
 
     Map<String, String> loadedAssets = new HashMap<>();
     static MediaWebView actualWb;
+    ActivityResultLauncher<Intent> mGetContent;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,6 +76,70 @@ public class MainActivity extends AppCompatActivity {
             getWindow().setStatusBarColor(Color.TRANSPARENT);
         }
         MediaWebView webView = findViewById(R.id.wb);
+        MainActivity main = this;
+        mGetContent = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), (result) -> {
+                    Uri uri = result.getData().getData();
+                    if (result.getResultCode() == RESULT_OK) {
+                        final int takeFlags = result.getData().getFlags()
+                                & (Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                        getContentResolver().takePersistableUriPermission(uri, takeFlags);
+                        if (uri != null) {
+                            String path = new File(uri.getPath()).getAbsolutePath();
+
+                            if (path != null) {
+                                String filename;
+                                Cursor cursor = getContentResolver().query(uri, null, null, null, null);
+
+                                if (cursor == null) filename = uri.getPath();
+                                else {
+                                    cursor.moveToFirst();
+                                    int idx = cursor.getColumnIndex(MediaStore.Files.FileColumns.DISPLAY_NAME);
+                                    filename = cursor.getString(idx);
+                                    cursor.close();
+                                }
+
+                                String name = filename.substring(0, filename.lastIndexOf("."));
+                                String extension = filename.substring(filename.lastIndexOf(".") + 1);
+                                webView.evaluateJavascript("listeners.filePickerCallback([`" + uri.toString() + "." + extension + "`])", null);
+                            }
+                        } else {
+                            webView.evaluateJavascript("listeners.filePickerCallback([])", null);
+                        }
+                    }
+                }
+                /*new ActivityResultCallback<Uri>() {
+                    @Override
+                    public void onActivityResult(Uri uri) {
+                        final int takeFlags = getIntent().getFlags()
+                                & (Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                        getContentResolver().takePersistableUriPermission(uri, takeFlags);
+                        if(uri != null) {
+                            String path = new File(uri.getPath()).getAbsolutePath();
+
+                            if(path != null){
+                                String filename;
+                                Cursor cursor = getContentResolver().query(uri,null,null,null,null);
+
+                                if(cursor == null) filename=uri.getPath();
+                                else{
+                                    cursor.moveToFirst();
+                                    int idx = cursor.getColumnIndex(MediaStore.Files.FileColumns.DISPLAY_NAME);
+                                    filename = cursor.getString(idx);
+                                    cursor.close();
+                                }
+
+                                String name = filename.substring(0,filename.lastIndexOf("."));
+                                String extension = filename.substring(filename.lastIndexOf(".")+1);
+                                webView.evaluateJavascript("listeners.filePickerCallback([`" + uri.toString() + "." + extension + "`])", null);
+                            }
+                        }
+                        else {
+                            webView.evaluateJavascript("listeners.filePickerCallback([])", null);
+                        }
+                    }
+                }*/);
         actualWb = webView;
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
@@ -148,6 +214,67 @@ public class MainActivity extends AppCompatActivity {
                 /*CookieManager.getInstance().setAcceptCookie(true);
                 CookieManager.getInstance().acceptCookie();
                 CookieManager.getInstance().flush();*/
+                String CACHE_APP_SCHEME = "https://mycache/";
+                if (request.getUrl().toString().startsWith(CACHE_APP_SCHEME)) {
+                    String newUrl = request.getUrl().toString().replace(CACHE_APP_SCHEME, "");
+                    try {
+                        File tempFile = new File(main.getCacheDir() + "/" + newUrl);
+                        FileInputStream is = new FileInputStream(tempFile);
+                        String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(MimeTypeMap.getFileExtensionFromUrl(newUrl));
+                        Map<String, String> map = new HashMap<>();
+                        map.put("Access-Control-Allow-Origin", "*");
+                        return new WebResourceResponse(mimeType, "UTF-8", 200, "0K", map, is);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        return super.shouldInterceptRequest(view, request);
+                    }
+                }
+                String DATA_APP_SCHEME = "https://mydata/";
+                if (request.getUrl().toString().startsWith(DATA_APP_SCHEME)) {
+                    String newUrl = request.getUrl().toString().replace(DATA_APP_SCHEME, "");
+                    try {
+                        File tempFile = new File(main.getDataDir() + "/" + newUrl);
+                        FileInputStream is = new FileInputStream(tempFile);
+                        String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(MimeTypeMap.getFileExtensionFromUrl(newUrl));
+                        Map<String, String> map = new HashMap<>();
+                        map.put("Access-Control-Allow-Origin", "*");
+                        return new WebResourceResponse(mimeType, "UTF-8", 200, "0K", map, is);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        return super.shouldInterceptRequest(view, request);
+                    }
+                }
+                String FILES_APP_SCHEME = "https://myfiles/";
+                if (request.getUrl().toString().startsWith(FILES_APP_SCHEME)) {
+                    String newUrl = request.getUrl().toString().replace(FILES_APP_SCHEME, "");
+                    try {
+                        String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(MimeTypeMap.getFileExtensionFromUrl(newUrl));
+                        Collection<String> hashset = new ArrayList<>(Arrays.asList(newUrl.split("\\.")));
+                        hashset.remove(newUrl.split("\\.")[newUrl.split("\\.").length - 1]);
+                        newUrl = TextUtils.join(".", hashset);
+                        Log.e("sdqfdsqfqs", newUrl);
+                        InputStream is = getContentResolver().openInputStream(Uri.parse(newUrl));
+                        for(Map.Entry<String, String> header : request.getRequestHeaders().entrySet()) {
+                            if(header.getKey().equals("Range")) {
+                                int skip = Integer.parseInt(header.getValue().split("=")[1].split("-")[0]);
+                                Log.e("dqffqsdfsqfsd", skip + "");
+                                //is.skip(skip);
+                            }
+                        }
+                        //loadedAssets.put(newUrl, total.toString());
+                        Map<String, String> map = new HashMap<>();
+                        map.put("Access-Control-Allow-Origin", "*");
+                        //map.put("Accept-Ranges", "bytes");
+                        //Log.e("sqfsdqfsdqfsdq", String.valueOf(is.available()));
+                        map.put("Access-Control-Allow-Headers", "*");
+                        WebResourceResponse resp = new WebResourceResponse(mimeType, "UTF-8", is);
+                        resp.setResponseHeaders(map);
+                        return resp;
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        return super.shouldInterceptRequest(view, request);
+                    }
+                }
                 String APP_SCHEME = "https://myapp/";
                 if (request.getUrl().toString().startsWith(APP_SCHEME)) {
                     String newUrl = request.getUrl().toString().replace(APP_SCHEME, "");
@@ -169,53 +296,15 @@ public class MainActivity extends AppCompatActivity {
                         connection.setConnectTimeout(5000);
                         connection.setReadTimeout(5000);
                         connection.setInstanceFollowRedirects(false);
-
-
-                        //OkHttpClient client = new OkHttpClient();
-                        /*try {
-                            client.networkInterceptors().add(new Interceptor() {
-                                @Override
-                                public Response intercept(Interceptor.Chain chain) throws IOException {
-                                    return chain.proceed(chain.request());
-                                }
-                            });
-                        }
-                        catch (Exception e) {
-                            e.printStackTrace();
-                        }*/
-                        //Request.Builder build = new Request.Builder().url(request.getUrl().toString());
                         for(Map.Entry<String, String> head : request.getRequestHeaders().entrySet()) {
-                            if(request.getUrl().toString().contains("spotify.com") && head.getKey().toLowerCase().equals("authorization".toLowerCase())) {
-                                Log.e("fdqfsdfsdq", head.getValue());
-                                WebAppInterface.clientsToken.put("Spotify", head.getValue().split("Bearer ")[1]);
-                            }
                             connection.addRequestProperty(head.getKey(), head.getValue());
                             //build.addHeader(head.getKey(), head.getValue());
                         }
                         if(CookieManager.getInstance().getCookie(request.getUrl().toString()) != null) {
                             for (HttpCookie cookie : HttpCookie.parse(CookieManager.getInstance().getCookie(request.getUrl().toString()))) {
-                                //build.addHeader("Cookie", cookie.toString());
                                 connection.addRequestProperty("Cookie", cookie.toString());
                             }
                         }
-                        /*if (request.getUrl().toString().contains("spotify.com")) {
-                            for (Map.Entry<String, List<String>> entries : connection.getRequestProperties().entrySet()) {
-                                String h = entries.getKey();
-                                if (h != null) {
-                                    for (String val : entries.getValue()) {
-                                        if (h.toLowerCase().equals("set-cookie".toLowerCase())) {
-                                            if (val.contains("SameSite=Lax")) {
-                                                connection.addRequestProperty(h, val.replace("SameSite=Lax", "SameSite=None; Secure"));
-                                            } else {
-                                                connection.addRequestProperty(h, val + "; SameSite=None");
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }*/
-                        //Request req = build.build();
-                        //Response resp = client.newCall(req).execute();
                         connection.connect();
                         if(connection.getResponseCode() >= 300 && connection.getResponseCode() <= 399)
                             return null;
