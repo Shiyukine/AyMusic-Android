@@ -10,41 +10,62 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaMetadata;
 import android.media.session.MediaSession;
 import android.media.session.PlaybackState;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Debug;
 import android.os.Handler;
+import android.os.ResultReceiver;
 import android.os.SystemClock;
 import android.service.notification.NotificationListenerService;
+import android.util.JsonReader;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
+import android.webkit.JsResult;
 import android.webkit.MimeTypeMap;
+import android.webkit.ValueCallback;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
+import org.jetbrains.annotations.NotNull;
+import org.json.JSONObject;
+import org.json.JSONStringer;
+
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Type;
 import java.net.HttpCookie;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+import kotlin.Unit;
+import okhttp3.Call;
+import okhttp3.Callback;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -171,22 +192,46 @@ public class WebAppInterface {
 
     @JavascriptInterface
     public String getSettingFile() {
-        return "{}";
+        SharedPreferences set = mainActivity.getSharedPreferences("UserConfig", 0);
+        return set.getString("json", "{}");
     }
 
     @JavascriptInterface
-    public String getUserSettingsFile(String path) {
-        return "[]";
+    public String getUserSettingsFile(String file) {
+        SharedPreferences set = mainActivity.getSharedPreferences(file.replace("/", "_"), 0);
+        return set.getString("json", "[]");
     }
 
     @JavascriptInterface
     public void changeSettingFile(String json) {
+        SharedPreferences set = mainActivity.getSharedPreferences("UserConfig", 0);
+        set.edit().putString("json", json).apply();
+    }
 
+    @JavascriptInterface
+    public void changeUserSettingsFile(String file, String json) {
+        SharedPreferences set = mainActivity.getSharedPreferences(file.replace("/", "_"), 0);
+        set.edit().putString("json", json).apply();
+    }
+
+    @JavascriptInterface
+    public void pickUpMusic() {
+        Handler mainHandler = new Handler(mContext.getMainLooper());
+
+        Runnable myRunnable = new Runnable() {
+            @Override
+            public void run() {
+                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                intent.setType("audio/*");
+                mainActivity.mGetContent.launch(intent);
+            } // This is your code
+        };
+        mainHandler.post(myRunnable);
     }
 
     @JavascriptInterface
     public void changeServURL(String url) {
-
+        Updates.servUrl = url;
     }
 
     @JavascriptInterface
@@ -255,6 +300,43 @@ public class WebAppInterface {
     }
 
     @JavascriptInterface
+    public void removeClientToken(String platform) {
+        WebAppInterface.clientsToken.remove(platform);
+    }
+
+    @JavascriptInterface
+    public void saveData(String path, byte[] data) {
+        try {
+            File dir = new File(mainActivity.getDataDir() + "/" + path.substring(0, path.lastIndexOf("/")));
+            if (!dir .exists()) {
+                dir.mkdirs();
+            }
+            File tempFile = new File(mainActivity.getDataDir() + "/" + path);
+            FileOutputStream fos = new FileOutputStream(tempFile);
+            fos.write(data);
+            fos.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @JavascriptInterface
+    public void saveCache(String path, byte[] data) {
+        try {
+            File dir = new File(mainActivity.getCacheDir() + "/" + path.substring(0, path.lastIndexOf("/")));
+            if (!dir .exists()) {
+                dir.mkdirs();
+            }
+            File tempFile = new File(mainActivity.getCacheDir() + "/" + path);
+            FileOutputStream fos = new FileOutputStream(tempFile);
+            fos.write(data);
+            fos.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @JavascriptInterface
     public void openWebsiteInNewWindow(String baseUrl, String closeUrl) {
         Handler mainHandler = new Handler(mContext.getMainLooper());
 
@@ -309,8 +391,17 @@ public class WebAppInterface {
                 }
                 else if (strURL.startsWith("https://mycache/")) {
                     String newUrl = strURL.replace("https://mycache/", "");
-                    //TO-DO
-                    Bitmap myBitmap = null;
+                    File tempFile = new File(mainActivity.getCacheDir() + "/" + newUrl);
+                    FileInputStream is = new FileInputStream(tempFile);
+                    Bitmap myBitmap = BitmapFactory.decodeStream(is);
+                    bitmaps.put(strURL, myBitmap);
+                    return myBitmap;
+                }
+                else if (strURL.startsWith("https://mydata/")) {
+                    String newUrl = strURL.replace("https://mydata/", "");
+                    File tempFile = new File(mainActivity.getDataDir() + "/" + newUrl);
+                    FileInputStream is = new FileInputStream(tempFile);
+                    Bitmap myBitmap = BitmapFactory.decodeStream(is);
                     bitmaps.put(strURL, myBitmap);
                     return myBitmap;
                 }
