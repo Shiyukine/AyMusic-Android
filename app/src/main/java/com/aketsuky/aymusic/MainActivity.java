@@ -139,7 +139,7 @@ public class MainActivity extends AppCompatActivity {
                         "            if(!loaded) {\n" +
                         "                console.log('Attempt registerClient')\n" +
                         "                if(typeof app != 'undefined' && app) {\n" +
-                        "                    app.registerClient('Android', 'v" + BuildConfig.VERSION_NAME + "', " + BuildConfig.VERSION_CODE + ", window.boundobject)\n" +
+                        "                    app.registerClient('Android', 'v" + BuildConfig.VERSION_NAME + "', " + BuildConfig.VERSION_CODE + ", window.boundobject, " + (BuildConfig.IS_RELEASE) + ")\n" +
                         "                    clearInterval(intev)\n" +
                         "                }\n" +
                         "            }\n" +
@@ -147,7 +147,7 @@ public class MainActivity extends AppCompatActivity {
                         "                clearInterval(intev)\n" +
                         "            }\n" +
                         "        }, 100)\n" +
-                        "        app.registerClient('Android', 'v" + BuildConfig.VERSION_NAME + "', " + BuildConfig.VERSION_CODE + ", window.boundobject)", null);
+                        "        app.registerClient('Android', 'v" + BuildConfig.VERSION_NAME + "', " + BuildConfig.VERSION_CODE + ", window.boundobject, " + (BuildConfig.IS_RELEASE) + ")", null);
                 super.onPageFinished(view, url);
             }
 

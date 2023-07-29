@@ -7,7 +7,11 @@ android {
     buildToolsVersion "32.0.0"
 
     android.applicationVariants.all { variant ->
-
+        if (variant.getName() == "release") {
+            buildConfigField "boolean", "IS_RELEASE", "true"
+        } else {
+            buildConfigField "boolean", "IS_RELEASE", "false"
+        }
         variant.mergeAssetsProvider.configure  {
             doLast {
                 delete(fileTree(dir: outputDir, includes: ['node_modules/', '.git/**']))
