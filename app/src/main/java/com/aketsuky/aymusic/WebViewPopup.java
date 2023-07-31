@@ -1,10 +1,13 @@
 package com.aketsuky.aymusic;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
 import android.content.res.AssetManager;
+import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.webkit.CookieManager;
@@ -18,10 +21,15 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpCookie;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -61,9 +69,28 @@ public class WebViewPopup extends AppCompatActivity {
                 CookieManager.getInstance().acceptCookie();
                 CookieManager.getInstance().flush();
                 String closeUrl = extras.getString("closeUrl");
-                if(url.contains(closeUrl)) {
+                if (url.contains(closeUrl)) {
+                    Handler mainHandler = new Handler(getMainLooper());
+                    Runnable myRunnable = new Runnable() {
+                        @Override
+                        public void run() {
+                            view.stopLoading();
+                            view.loadUrl("about:blank");
+                            view.getSettings().setJavaScriptEnabled(false);
+                        } // This is your code
+                    };
+                    mainHandler.post(myRunnable);
                     finish();
                 }
+            }
+
+            @Override
+            public void onPageStarted(WebView view, String url, Bitmap favicon) {
+                if(url.contains("google"))
+                    view.getSettings().setUserAgentString("Chrome");
+                else
+                    view.getSettings().setUserAgentString("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36");
+                //super.onPageStarted(view, url, favicon);
             }
         });
         //load();
@@ -78,7 +105,7 @@ public class WebViewPopup extends AppCompatActivity {
         webViewSettings.setCacheMode(WebSettings.LOAD_NO_CACHE);
         webViewSettings.setMediaPlaybackRequiresUserGesture(false);
         webViewSettings.setRenderPriority(WebSettings.RenderPriority.HIGH);
-        webViewSettings.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.5735.106 Safari/537.36");
+        //webViewSettings.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36");
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView,true);
         webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);

@@ -33,6 +33,7 @@ import android.webkit.WebViewClient;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -282,21 +283,34 @@ public class MainActivity extends AppCompatActivity {
                         if(ScriptInjecter.haveScriptForUrl(request.getUrl().toString())) {
                             //String nhtml = resp.body().string();
                             InputStream in = connection.getInputStream();
-                            BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+                            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                            byte[] buffer = new byte[1024];
+                            int len;
+                            while ((len = in.read(buffer)) > -1 ) {
+                                baos.write(buffer, 0, len);
+                            }
+                            baos.flush();
+                            InputStream is1 = new ByteArrayInputStream(baos.toByteArray());
+                            InputStream is2 = new ByteArrayInputStream(baos.toByteArray());
+                            BufferedReader reader = new BufferedReader(new InputStreamReader(is2));
                             StringBuilder html = new StringBuilder();
                             for (String line; (line = reader.readLine()) != null; ) {
                                 html.append(line + "\n");
                             }
-                            in.close();
-
+                            is2.close();
                             //
                             String output = html.toString();
                             String nhtml = output;
-                            for(String s : ScriptInjecter.getScriptsForUrl(request.getUrl().toString())) {
-                                nhtml = nhtml.replace("</body>", "<script>" + s +"; console.log(location.href)</script></body>");
+                            if(nhtml.contains("</body>")) {
+                                for (String s : ScriptInjecter.getScriptsForUrl(request.getUrl().toString())) {
+                                    nhtml = nhtml.replace("</body>", "<script>" + s + "; console.log(location.href)</script></body>");
+                                }
+                                //if(nhtml.contains("<body>")) Log.e("fdsqfsq", nhtml);
+                                is = new ByteArrayInputStream(nhtml.getBytes(StandardCharsets.UTF_8));
                             }
-                            //if(nhtml.contains("<body>")) Log.e("fdsqfsq", nhtml);
-                            is = new ByteArrayInputStream(nhtml.getBytes(StandardCharsets.UTF_8));
+                            else {
+                                is = is1;
+                            }
                         }
                         else if(request.getUrl().toString().contains("spotify.com")) {
                             //String nhtml = resp.body().string();

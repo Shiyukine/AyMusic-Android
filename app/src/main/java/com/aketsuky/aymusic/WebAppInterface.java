@@ -372,103 +372,103 @@ public class WebAppInterface {
             } // This is your code
         };
         mainHandler.post(myRunnable);
-        OkHttpClient client = new OkHttpClient();
-        Request.Builder build = new Request.Builder().url(Updates.servUrl + "/dl/AyMusic/update_android.json");
-        Request req = build.build();
-        Response resp = null;
-        try {
-            resp = client.newCall(req).execute();
-            String nhtml = Objects.requireNonNull(resp.body()).string();
-            JSONObject json = new JSONObject(nhtml);
-            mainHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        view.evaluateJavascript("updateCallBack({\n" +
-                                "                    step: 0,\n" +
-                                "                    file: '" + Updates.servUrl + "/dl/AyMusic/update_android.json" + "',\n" +
-                                "                    cur: 50,\n" +
-                                "                    max: 100\n" +
-                                "                })", null);
-                        String info = json.getString("***INFOS***");
-                        int code = json.getInt("versionCode");
-                        Log.e("fdedfsdqqsdfsdq", code + "");
-                        view.evaluateJavascript("updateCallBack({\n" +
-                                "                    step: 1,\n" +
-                                "                    file: 'this APK',\n" +
-                                "                    cur: 0,\n" +
-                                "                    max: 100\n" +
-                                "                })", null);
-                        if (code > BuildConfig.VERSION_CODE) {
-                            view.evaluateJavascript("updateCallBack({\n" +
-                                    "                    step: 3,\n" +
-                                    "                    file: 'this APK',\n" +
-                                    "                    cur: 1,\n" +
-                                    "                    max: 1\n" +
-                                    "                })", null);
-                            new downloadFile(mainActivity, "/updated.apk") {
-                                @Override
-                                protected void onProgressUpdate(String... values) {
+        new getData() {
+            @Override
+            protected void onPostExecute(String s) {
+                try {
+                    JSONObject json = new JSONObject(s);
+                    mainHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                view.evaluateJavascript("updateCallBack({\n" +
+                                        "                    step: 0,\n" +
+                                        "                    file: '" + Updates.servUrl + "/dl/AyMusic/update_android.json" + "',\n" +
+                                        "                    cur: 50,\n" +
+                                        "                    max: 100\n" +
+                                        "                })", null);
+                                String info = json.getString("***INFOS***");
+                                int code = json.getInt("versionCode");
+                                Log.e("fdedfsdqqsdfsdq", code + "");
+                                view.evaluateJavascript("updateCallBack({\n" +
+                                        "                    step: 1,\n" +
+                                        "                    file: 'this APK',\n" +
+                                        "                    cur: 0,\n" +
+                                        "                    max: 100\n" +
+                                        "                })", null);
+                                if (code > BuildConfig.VERSION_CODE) {
                                     view.evaluateJavascript("updateCallBack({\n" +
-                                            "                    step: 4,\n" +
-                                            "                    file: '" + info.replace("%file%", "app.apk") + "',\n" +
-                                            "                    cur: " + values[0] + ",\n" +
-                                            "                    max: " + values[1] + "\n" +
-                                            "                })", null);
-                                }
-
-                                @Override
-                                protected void onPostExecute(File file) {
-                                    view.evaluateJavascript("updateCallBack({\n" +
-                                            "                    step: 5,\n" +
-                                            "                    file: '" + info.replace("%file%", "app.apk") + "',\n" +
+                                            "                    step: 3,\n" +
+                                            "                    file: 'this APK',\n" +
                                             "                    cur: 1,\n" +
                                             "                    max: 1\n" +
                                             "                })", null);
-                                    Uri fileUri = FileProvider.getUriForFile(mainActivity, mainActivity.getApplicationContext().getPackageName() + ".provider", file);
-                                    Intent intent = new Intent(Intent.ACTION_VIEW);
-                                    intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                                    intent.setDataAndType(fileUri, "application/vnd.android.package-archive");
-                                    //mainActivity.startActivity(new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:".concat("com.aketsuky.aymusic"))));
-                                    mainActivity.startActivity(intent);
+                                    new downloadFile(mainActivity, "/updated.apk") {
+                                        @Override
+                                        protected void onProgressUpdate(String... values) {
+                                            view.evaluateJavascript("updateCallBack({\n" +
+                                                    "                    step: 4,\n" +
+                                                    "                    file: '" + info.replace("%file%", "app.apk") + "',\n" +
+                                                    "                    cur: " + values[0] + ",\n" +
+                                                    "                    max: " + values[1] + "\n" +
+                                                    "                })", null);
+                                        }
+
+                                        @Override
+                                        protected void onPostExecute(File file) {
+                                            view.evaluateJavascript("updateCallBack({\n" +
+                                                    "                    step: 5,\n" +
+                                                    "                    file: '" + info.replace("%file%", "app.apk") + "',\n" +
+                                                    "                    cur: 1,\n" +
+                                                    "                    max: 1\n" +
+                                                    "                })", null);
+                                            Uri fileUri = FileProvider.getUriForFile(mainActivity, mainActivity.getApplicationContext().getPackageName() + ".provider", file);
+                                            Intent intent = new Intent(Intent.ACTION_VIEW);
+                                            intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                                            intent.setDataAndType(fileUri, "application/vnd.android.package-archive");
+                                            //mainActivity.startActivity(new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:".concat("com.aketsuky.aymusic"))));
+                                            mainActivity.startActivity(intent);
+                                        }
+                                    }.execute(info.replace("%file%", "app.apk"));
+                                } else {
+                                    view.evaluateJavascript("updateCallBack({\n" +
+                                            "                    step: -1,\n" +
+                                            "                    file: null,\n" +
+                                            "                    cur: 1,\n" +
+                                            "                    max: 1\n" +
+                                            "                })", null);
                                 }
-                            }.execute(info.replace("%file%", "app.apk"));
-                        } else {
+                            }
+                            catch (Exception e) {
+                                e.printStackTrace();
+                                view.evaluateJavascript("updateCallBack({\n" +
+                                        "                    step: -2,\n" +
+                                        "                    file: null,\n" +
+                                        "                    cur: 0,\n" +
+                                        "                    max: 1,\n" +
+                                        "                    error: `" + Arrays.toString(e.getStackTrace()) + "`" +
+                                        "                })", null);
+                            }
+                        } // This is your code
+                    });
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    mainHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
                             view.evaluateJavascript("updateCallBack({\n" +
-                                    "                    step: -1,\n" +
+                                    "                    step: -2,\n" +
                                     "                    file: null,\n" +
-                                    "                    cur: 1,\n" +
-                                    "                    max: 1\n" +
+                                    "                    cur: 0,\n" +
+                                    "                    max: 1,\n" +
+                                    "                    error: `" + s.replace("<", "") + "`" +
                                     "                })", null);
-                        }
-                    }
-                    catch (Exception e) {
-                        e.printStackTrace();
-                        view.evaluateJavascript("updateCallBack({\n" +
-                                "                    step: -2,\n" +
-                                "                    file: null,\n" +
-                                "                    cur: 0,\n" +
-                                "                    max: 1,\n" +
-                                "                    error: `" + Arrays.toString(e.getStackTrace()) + "`" +
-                                "                })", null);
-                    }
-                } // This is your code
-            });
-        } catch (Exception e) {
-            e.printStackTrace();
-            mainHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    view.evaluateJavascript("updateCallBack({\n" +
-                            "                    step: -2,\n" +
-                            "                    file: null,\n" +
-                            "                    cur: 0,\n" +
-                            "                    max: 1,\n" +
-                            "                    error: `" + e.getMessage().replace("<", "") + "`" +
-                            "                })", null);
-                } // This is your code
-            });
-        }
+                        } // This is your code
+                    });
+                }
+                super.onPostExecute(s);
+            }
+        }.execute(Updates.servUrl + "/dl/AyMusic/update_android.json");
     }
 
     @JavascriptInterface

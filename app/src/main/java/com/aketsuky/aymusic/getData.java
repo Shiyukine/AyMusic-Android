@@ -27,11 +27,11 @@ public class getData extends AsyncTask<String, Void, String> {
             in.close();
 
             //
-            String output = html.toString().replace("\\u003C", "<");
+            String output = html.toString()/*.replace("\\u003C", "<")*/;
             return output;
         } catch (Exception e) {
             e.printStackTrace();
-            return null;
+            return e.toString();
         }
     }
 }
