@@ -260,7 +260,7 @@ public class MainActivity extends AppCompatActivity {
                         return super.shouldInterceptRequest(view, request);
                     }
                 }
-                if((request.getUrl().toString().contains("youtube.com") || request.getUrl().toString().contains("spotify.com") || ScriptInjecter.haveScriptForUrl(request.getUrl().toString())) && request.getMethod().equals("GET")) {
+                if((request.getUrl().toString().contains("youtube.com") || request.getUrl().toString().contains("google.com") || request.getUrl().toString().contains("spotify.com") || ScriptInjecter.haveScriptForUrl(request.getUrl().toString())) && request.getMethod().equals("GET")) {
                     try {
                         //String nhtml = new getData().execute(request.getUrl().toString()).get();
                         HttpURLConnection connection = (HttpURLConnection) (new URL(request.getUrl().toString())).openConnection();
@@ -356,7 +356,7 @@ public class MainActivity extends AppCompatActivity {
                             String h = entries.getKey();
                             if(h != null) {
                                 for (String val : entries.getValue()) {
-                                    if (request.getUrl().toString().contains("youtube.com") || request.getUrl().toString().contains("spotify.com")) {
+                                    if (request.getUrl().toString().contains("youtube.com") || request.getUrl().toString().contains("google.com") || request.getUrl().toString().contains("spotify.com")) {
                                         if (!h.toLowerCase().equals("x-frame-options") && !h.toLowerCase().equals("content-security-policy-report-only")
                                                 && !h.toLowerCase().equals("Cross-Origin-Opener-Policy-Report-Only".toLowerCase())
                                                 && !h.toLowerCase().equals("Permissions-Policy".toLowerCase())
@@ -371,9 +371,14 @@ public class MainActivity extends AppCompatActivity {
                                 }
                             }
                         }
-                        if(!respH.containsKey("access-control-allow-origin") && !respH.containsKey("Access-Control-Allow-Origin")) {
-                            respH.put("access-control-allow-origin", "*");
+                        Map<String, String> respHrm = new HashMap<>();
+                        for(Map.Entry<String, String> head : respH.entrySet()) {
+                            respHrm.put(head.getKey(), head.getValue());
                         }
+                        for(Map.Entry<String, String> head : respHrm.entrySet()) {
+                            if(head.getKey().toLowerCase().equals("access-control-allow-origin")) respH.remove(head.getKey(), head.getValue());
+                        }
+                        respH.put("access-control-allow-origin", "*");
                         //return new WebResourceResponse(mimeType, "UTF-8", resp.code(), !resp.message().equals("") ? resp.message() : "OK", respH, is);
                         return new WebResourceResponse(mimeType, "UTF-8", connection.getResponseCode(), connection.getResponseMessage(), respH, is);
                     } catch (Exception e) {

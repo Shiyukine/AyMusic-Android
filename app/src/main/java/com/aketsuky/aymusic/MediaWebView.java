@@ -24,9 +24,4 @@ public class MediaWebView extends WebView {
     protected void onWindowVisibilityChanged(int visibility) {
         super.onWindowVisibilityChanged(View.VISIBLE);
     }
-
-    @Override
-    public void onPause() {
-        //super.onPause();
-    }
 }

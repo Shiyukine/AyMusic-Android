@@ -239,6 +239,12 @@ public class WebAppInterface {
     }
 
     @JavascriptInterface
+    public void openLink(String url) {
+        Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+        mainActivity.startActivity(browserIntent);
+    }
+
+    @JavascriptInterface
     public void loadBackgroundWeb(String url) {
         Handler mainHandler = new Handler(mContext.getMainLooper());
 
