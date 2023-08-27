@@ -11,9 +11,11 @@ android {
     android.applicationVariants.all { variant ->
         if (variant.getName() == "release") {
             buildConfigField "boolean", "IS_RELEASE", "true"
+            variant.mergedFlavor.manifestPlaceholders = [appName: "AyMusic"]
         } else {
             buildConfigField "boolean", "IS_RELEASE", "false"
             variant.mergedFlavor.applicationId = "com.aketsuky.aymusic.debug"
+            variant.mergedFlavor.manifestPlaceholders = [appName: "AyMusic Dev"]
         }
         variant.mergeAssetsProvider.configure  {
             doLast {
@@ -26,7 +28,7 @@ android {
         applicationId "com.aketsuky.aymusic"
         minSdkVersion 24
         targetSdkVersion 31
-        versionCode 4
+        versionCode 5
         versionName "0.2.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
