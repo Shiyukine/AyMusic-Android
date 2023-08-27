@@ -4,9 +4,12 @@ import android.content.Context;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
+import android.webkit.ValueCallback;
 import android.webkit.WebView;
 
 public class MediaWebView extends WebView {
+
+    public static boolean changeVisibility = false;
 
     public MediaWebView(Context context) {
         super(context);
@@ -20,8 +23,13 @@ public class MediaWebView extends WebView {
         super(context, attrs, defStyleAttr);
     }
 
-    @Override
+    /*@Override
     protected void onWindowVisibilityChanged(int visibility) {
-        super.onWindowVisibilityChanged(View.VISIBLE);
-    }
+        if(changeVisibility) {
+            super.onWindowVisibilityChanged(visibility);
+        }
+        else {
+            super.onWindowVisibilityChanged(View.VISIBLE);
+        }
+    }*/
 }

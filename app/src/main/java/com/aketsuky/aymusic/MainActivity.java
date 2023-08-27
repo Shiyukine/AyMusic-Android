@@ -3,14 +3,20 @@ package com.aketsuky.aymusic;
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.res.AssetManager;
 import android.database.Cursor;
 import android.graphics.Color;
+import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
+import android.media.AudioManager;
+import android.media.session.PlaybackState;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -24,6 +30,7 @@ import android.view.WindowManager;
 import android.webkit.CookieManager;
 import android.webkit.MimeTypeMap;
 import android.webkit.PermissionRequest;
+import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -50,12 +57,14 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Semaphore;
 
 public class MainActivity extends AppCompatActivity {
 
     Map<String, String> loadedAssets = new HashMap<>();
     static MediaWebView actualWb;
     ActivityResultLauncher<Intent> mGetContent;
+    AudioManager.OnAudioFocusChangeListener amOn;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -502,6 +511,20 @@ public class MainActivity extends AppCompatActivity {
         webViewSettings2.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.5735.106 Safari/537.36");
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView2,true);
+        amOn = new AudioManager.OnAudioFocusChangeListener() {
+            @Override
+            public void onAudioFocusChange(int i) {
+                Log.e("gfdsgdfgdsgdf", "" + i);
+                if (i == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
+                    // Pause playback
+                } else if (i == AudioManager.AUDIOFOCUS_GAIN) {
+                    // Resume playback
+                    WebAppInterface._mediaSession.getController().getTransportControls().play();
+                } else if (i == AudioManager.AUDIOFOCUS_LOSS) {
+                    // Stop playback
+                }
+            }
+        };
     }
 
     public static void setWindowFlag(Activity activity, final int bits, boolean on) {
@@ -532,5 +555,61 @@ public class MainActivity extends AppCompatActivity {
             ((MediaWebView)findViewById(R.id.wb)).evaluateJavascript("listeners.showListenViewerWindow()", null);
         }
         super.onNewIntent(intent);
+    }
+
+    private Semaphore semaphore = new Semaphore(1);
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    @Override
+    protected void onPause() {
+        if(MyService.instance != null) {
+            try {
+                semaphore.acquire();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            MainActivity.actualWb.evaluateJavascript("listeners.player.setVolume(0); listeners.player.play();", new ValueCallback<String>() {
+                @Override
+                public void onReceiveValue(String s) {
+                    semaphore.release();
+                }
+            });
+            super.onPause();
+            AudioManager am = (AudioManager) MyService.instance.getSystemService(Context.AUDIO_SERVICE);
+            AudioFocusRequest afr = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                    .setAudioAttributes(
+                            new AudioAttributes.Builder()
+                                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                                    .build()
+                    )
+                    .setOnAudioFocusChangeListener(amOn)
+                    .build();
+            //int aa = am.requestAudioFocus(afr,AudioManager.STREAM_MUSIC,AudioManager.AUDIOFOCUS_GAIN);
+            int aa = am.requestAudioFocus(afr);
+            if (aa == AudioManager.AUDIOFOCUS_REQUEST_GRANTED && WebAppInterface._mediaSession.getController().getPlaybackState().getState() == PlaybackState.STATE_PLAYING) {
+                WebAppInterface._mediaSession.getController().getTransportControls().play();
+            }
+            MainActivity.actualWb.evaluateJavascript("listeners.player.setVolume(100);", null);
+        }
+        else {
+            super.onPause();
+        }
+        //WebAppInterface._mediaSession.getController().getTransportControls().play();
+        /*MediaWebView.changeVisibility = true;
+        WebView view = findViewById(R.id.wb);
+        view.evaluateJavascript("window.listeners.changeDocumentVisibility(false)", null);
+        view.setVisibility(View.GONE);
+        MediaWebView.changeVisibility = false;*/
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        /*MediaWebView.changeVisibility = true;
+        WebView view = findViewById(R.id.wb);
+        view.evaluateJavascript("window.listeners.changeDocumentVisibility(true)", null);
+        view.setVisibility(View.VISIBLE);
+        MediaWebView.changeVisibility = false;*/
     }
 }

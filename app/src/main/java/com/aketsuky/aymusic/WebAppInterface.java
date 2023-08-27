@@ -15,6 +15,11 @@ import android.content.SharedPreferences;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
+import android.media.AudioFormat;
+import android.media.AudioManager;
+import android.media.AudioTrack;
 import android.media.MediaMetadata;
 import android.media.session.MediaSession;
 import android.media.session.PlaybackState;
@@ -41,6 +46,7 @@ import android.webkit.WebView;
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.FileProvider;
@@ -79,7 +85,7 @@ public class WebAppInterface {
     WebView view;
     MainActivity mainActivity;
     static HashMap<String, String> clientsToken = new HashMap<>();
-    private MediaSession _mediaSession = null;
+    public static MediaSession _mediaSession = null;
     final String MEDIA_SESSION_TAG = "AyMusic";
     String channelId = "AyMusicPlayer";
     MediaButtonIntentReceiver receiver;
@@ -93,6 +99,11 @@ public class WebAppInterface {
         _mediaSession.setFlags(MediaSession.FLAG_HANDLES_MEDIA_BUTTONS |
                 MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS);
         _mediaSession.setActive(true);
+        ComponentName eventReceiver = new ComponentName(mContext.getPackageName(), MediaButtonIntentReceiver.class.getName());
+        if (Build.VERSION.SDK_INT >= 31) {
+            _mediaSession.setMediaButtonBroadcastReceiver(eventReceiver);
+        }
+        final boolean[] isPlaying = {false};
         _mediaSession.setCallback(new MediaSession.Callback() {
             @Override
             public void onPlay() {
@@ -101,7 +112,55 @@ public class WebAppInterface {
                 Runnable myRunnable = new Runnable() {
                     @Override
                     public void run() {
+                        /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !isPlaying[0]) {
+                            AudioManager am = (AudioManager)MyService.instance.getSystemService(Context.AUDIO_SERVICE);
+                            AudioFocusRequest afr = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                                    .setAudioAttributes(
+                                            new AudioAttributes.Builder()
+                                                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                                                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                                                    .build()
+                                    )
+                                    .build();
+                            //int aa = am.requestAudioFocus(afr,AudioManager.STREAM_MUSIC,AudioManager.AUDIOFOCUS_GAIN);
+                            int aa = am.requestAudioFocus(afr);
+                            if(aa == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+                                isPlaying[0] = true;
+                                _mediaSession.getController().getTransportControls().play();
+                            }
+                        }*/
+                        /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !isPlaying[0]) {
+                            AudioManager am = (AudioManager) MyService.instance.getSystemService(Context.AUDIO_SERVICE);
+                            AudioFocusRequest afr = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+                                    .setAudioAttributes(
+                                            new AudioAttributes.Builder()
+                                                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                                                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                                                    .build()
+                                    )
+                                    .setOnAudioFocusChangeListener(new AudioManager.OnAudioFocusChangeListener() {
+                                        @Override
+                                        public void onAudioFocusChange(int i) {
+                                            Log.e("gfdsgdfgdsgdf", "" + i);
+                                            if (i == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
+                                                // Pause playback
+                                            } else if (i == AudioManager.AUDIOFOCUS_GAIN) {
+                                                // Resume playback
+                                                WebAppInterface._mediaSession.getController().getTransportControls().play();
+                                            } else if (i == AudioManager.AUDIOFOCUS_LOSS) {
+                                                // Stop playback
+                                            }
+                                        }
+                                    })
+                                    .build();
+                            //int aa = am.requestAudioFocus(afr,AudioManager.STREAM_MUSIC,AudioManager.AUDIOFOCUS_GAIN);
+                            int aa = am.requestAudioFocus(afr);
+                            if (aa == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+                                //WebAppInterface._mediaSession.getController().getTransportControls().play();
+                            }
+                        }*/
                         view.evaluateJavascript("listeners.player.play()", null);
+                        isPlaying[0] = false;
                     } // This is your code
                 };
                 mainHandler.post(myRunnable);
@@ -395,7 +454,6 @@ public class WebAppInterface {
                                         "                })", null);
                                 String info = json.getString("***INFOS***");
                                 int code = json.getInt("versionCode");
-                                Log.e("fdedfsdqqsdfsdq", code + "");
                                 view.evaluateJavascript("updateCallBack({\n" +
                                         "                    step: 1,\n" +
                                         "                    file: 'this APK',\n" +
@@ -597,16 +655,38 @@ public class WebAppInterface {
                 .build();
         _mediaSession.setPlaybackState(state);
         mediaNotify();
+        if(MyService.instance == null && playing) {
+            Intent myService = new Intent(mainActivity, MyService.class);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                mainActivity.startForegroundService(myService);
+            }
+        }
     }
 
     static Notification aNoti = null;
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    @JavascriptInterface
+    public void audioPriority() {
+        AudioManager am = (AudioManager)MyService.instance.getSystemService(Context.AUDIO_SERVICE);
+        AudioFocusRequest afr = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                .setAudioAttributes(
+                        new AudioAttributes.Builder()
+                                .setUsage(AudioAttributes.USAGE_MEDIA)
+                                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                                .build()
+                )
+                .build();
+        //int aa = am.requestAudioFocus(afr,AudioManager.STREAM_MUSIC,AudioManager.AUDIOFOCUS_GAIN);
+        int aa = am.requestAudioFocus(afr);
+        if(aa == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+            _mediaSession.getController().getTransportControls().play();
+        }
+        Log.e("fsdfsqf", aa + "");
+    }
+
     void mediaNotify() {
         Context context = mContext;
-        ComponentName eventReceiver = new ComponentName(context.getPackageName(), MediaButtonIntentReceiver.class.getName());
-        if (Build.VERSION.SDK_INT >= 31) {
-            _mediaSession.setMediaButtonBroadcastReceiver(eventReceiver);
-        }
         NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         NotificationChannel channel = null;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -665,9 +745,11 @@ public class WebAppInterface {
                     .build();
         }
         aNoti = noti;
-        Intent myService = new Intent(mainActivity, MyService.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            mainActivity.startForegroundService(myService);
+        if(MyService.instance == null) {
+
+        }
+        else {
+            MyService.instance.updateNotif();
         }
         //nm.notify(0, noti);
     }

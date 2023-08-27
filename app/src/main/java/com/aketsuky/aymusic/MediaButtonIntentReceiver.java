@@ -20,18 +20,17 @@ public class MediaButtonIntentReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        wb.requestFocus();
         if(intent.getAction().equals("mediaPause")) {
-            wb.evaluateJavascript("listeners.player.pause()", null);
+            WebAppInterface._mediaSession.getController().getTransportControls().pause();
         }
         if(intent.getAction().equals("mediaPlay")) {
-            wb.evaluateJavascript("listeners.player.play()", null);
+            WebAppInterface._mediaSession.getController().getTransportControls().play();
         }
         if(intent.getAction().equals("mediaNext")) {
-            wb.evaluateJavascript("listeners.player.next()", null);
+            WebAppInterface._mediaSession.getController().getTransportControls().skipToNext();
         }
         if(intent.getAction().equals("mediaPrevious")) {
-            wb.evaluateJavascript("listeners.player.previous()", null);
+            WebAppInterface._mediaSession.getController().getTransportControls().skipToPrevious();
         }
     }
 }

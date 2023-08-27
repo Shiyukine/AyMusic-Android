@@ -6,11 +6,14 @@ android {
     compileSdkVersion 31
     buildToolsVersion "32.0.0"
 
+
+
     android.applicationVariants.all { variant ->
         if (variant.getName() == "release") {
             buildConfigField "boolean", "IS_RELEASE", "true"
         } else {
             buildConfigField "boolean", "IS_RELEASE", "false"
+            variant.mergedFlavor.applicationId = "com.aketsuky.aymusic.debug"
         }
         variant.mergeAssetsProvider.configure  {
             doLast {

@@ -1,7 +1,14 @@
 package com.aketsuky.aymusic;
 
+import android.app.Notification;
+import android.app.NotificationManager;
 import android.app.Service;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
+import android.media.AudioManager;
 import android.os.IBinder;
 import android.util.Log;
 import android.webkit.WebView;
@@ -10,6 +17,7 @@ import androidx.annotation.Nullable;
 
 public class MyService extends Service {
     WebView wb;
+    public static MyService instance = null;
 
     @Nullable
     @Override
@@ -18,10 +26,21 @@ public class MyService extends Service {
     }
 
     @Override
+    public boolean onUnbind(Intent intent) {
+        return false;
+    }
+
+    @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         wb = MainActivity.actualWb;
+        instance = this;
         startForeground(1, WebAppInterface.aNoti);
         return super.onStartCommand(intent, flags, startId);
+    }
+
+    public void updateNotif() {
+        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        mNotificationManager.notify(1, WebAppInterface.aNoti);
     }
 
     /*@Override
