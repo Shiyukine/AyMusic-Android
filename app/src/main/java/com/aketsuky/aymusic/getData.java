@@ -31,7 +31,7 @@ public class getData extends AsyncTask<String, Void, String> {
             return output;
         } catch (Exception e) {
             e.printStackTrace();
-            return e.toString();
+            return null;
         }
     }
 }
