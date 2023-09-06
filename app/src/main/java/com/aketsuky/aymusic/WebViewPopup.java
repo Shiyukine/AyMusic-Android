@@ -69,7 +69,10 @@ public class WebViewPopup extends AppCompatActivity {
                 CookieManager.getInstance().acceptCookie();
                 CookieManager.getInstance().flush();
                 String closeUrl = extras.getString("closeUrl");
-                if (url.contains(closeUrl)) {
+                boolean filterByInclude = extras.getBoolean("filterByInclude");
+                boolean test = url.equals(closeUrl);
+                if(filterByInclude) test = url.contains(closeUrl);
+                if (test) {
                     Handler mainHandler = new Handler(getMainLooper());
                     Runnable myRunnable = new Runnable() {
                         @Override

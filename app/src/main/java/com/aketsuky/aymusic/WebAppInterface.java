@@ -406,7 +406,7 @@ public class WebAppInterface {
     }
 
     @JavascriptInterface
-    public void openWebsiteInNewWindow(String baseUrl, String closeUrl) {
+    public void openWebsiteInNewWindow(String baseUrl, String closeUrl, boolean filterByInclude) {
         Handler mainHandler = new Handler(mContext.getMainLooper());
 
         Runnable myRunnable = new Runnable() {
@@ -415,6 +415,7 @@ public class WebAppInterface {
                 Intent i = new Intent(mContext, WebViewPopup.class);
                 i.putExtra("baseUrl", baseUrl);
                 i.putExtra("closeUrl", closeUrl);
+                i.putExtra("filterByInclude", filterByInclude);
                 mContext.startActivity(i);
             } // This is your code
         };

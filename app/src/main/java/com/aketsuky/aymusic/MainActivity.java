@@ -365,18 +365,13 @@ public class MainActivity extends AppCompatActivity {
                             String h = entries.getKey();
                             if(h != null) {
                                 for (String val : entries.getValue()) {
-                                    if (request.getUrl().toString().contains("youtube.com") || request.getUrl().toString().contains("google.com") || request.getUrl().toString().contains("spotify.com")) {
-                                        if (!h.toLowerCase().equals("x-frame-options") && !h.toLowerCase().equals("content-security-policy-report-only")
-                                                && !h.toLowerCase().equals("Cross-Origin-Opener-Policy-Report-Only".toLowerCase())
-                                                && !h.toLowerCase().equals("Permissions-Policy".toLowerCase())
-                                                && !h.toLowerCase().equals("Report-To".toLowerCase())
-                                                //&& !h.toLowerCase().equals("Content-Security-Policy".toLowerCase())) respH.put(h, resp.header(h));
-                                                && !h.toLowerCase().equals("Content-Security-Policy".toLowerCase()))
-                                            respH.put(h, val);
-                                    } else {
-                                        //respH.put(h, resp.header(h));
+                                    if (!h.toLowerCase().equals("x-frame-options") && !h.toLowerCase().equals("content-security-policy-report-only")
+                                            && !h.toLowerCase().equals("Cross-Origin-Opener-Policy-Report-Only".toLowerCase())
+                                            && !h.toLowerCase().equals("Permissions-Policy".toLowerCase())
+                                            && !h.toLowerCase().equals("Report-To".toLowerCase())
+                                            //&& !h.toLowerCase().equals("Content-Security-Policy".toLowerCase())) respH.put(h, resp.header(h));
+                                            && !h.toLowerCase().equals("Content-Security-Policy".toLowerCase()))
                                         respH.put(h, val);
-                                    }
                                 }
                             }
                         }
