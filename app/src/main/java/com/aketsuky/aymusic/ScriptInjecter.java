@@ -20,10 +20,16 @@ public class ScriptInjecter {
     }
 
     public static boolean haveScriptForUrl(String url) {
-        for(Map.Entry<String, String> u : map.entrySet()) {
-            if(url.contains(u.getKey())) return true;
+        try {
+            for (Map.Entry<String, String> u : map.entrySet()) {
+                if (url.contains(u.getKey())) return true;
+            }
+            return false;
         }
-        return false;
+        catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
     public static List<String> getScriptsForUrl(String url) {

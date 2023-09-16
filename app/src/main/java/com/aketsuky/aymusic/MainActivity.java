@@ -191,6 +191,8 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                if (request.getUrl() != null && !Adblock.isAGoodUrl(request.getUrl().toString()))
+                    return new WebResourceResponse("text/html", "UTF-8", new ByteArrayInputStream("<p></p>".getBytes()));
                 /*CookieManager.getInstance().setAcceptCookie(true);
                 CookieManager.getInstance().acceptCookie();
                 CookieManager.getInstance().flush();*/
@@ -554,7 +556,6 @@ public class MainActivity extends AppCompatActivity {
 
     private Semaphore semaphore = new Semaphore(1);
 
-    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected void onPause() {
         if(MyService.instance != null) {
@@ -570,18 +571,25 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
             super.onPause();
-            AudioManager am = (AudioManager) MyService.instance.getSystemService(Context.AUDIO_SERVICE);
-            AudioFocusRequest afr = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-                    .setAudioAttributes(
-                            new AudioAttributes.Builder()
-                                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                                    .build()
-                    )
-                    .setOnAudioFocusChangeListener(amOn)
-                    .build();
+            AudioManager am = (AudioManager) actualWb.getContext().getSystemService(Context.AUDIO_SERVICE);
+            AudioFocusRequest afr = null;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                afr = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                        .setAudioAttributes(
+                                new AudioAttributes.Builder()
+                                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                                        .build()
+                        )
+                        .setOnAudioFocusChangeListener(amOn)
+                        .build();
+            }
             //int aa = am.requestAudioFocus(afr,AudioManager.STREAM_MUSIC,AudioManager.AUDIOFOCUS_GAIN);
-            int aa = am.requestAudioFocus(afr);
+            int aa = 0;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                aa = am.requestAudioFocus(afr);
+            }
+            else aa = am.requestAudioFocus(null ,AudioManager.STREAM_MUSIC,AudioManager.AUDIOFOCUS_GAIN);
             if (aa == AudioManager.AUDIOFOCUS_REQUEST_GRANTED && WebAppInterface._mediaSession.getController().getPlaybackState().getState() == PlaybackState.STATE_PLAYING) {
                 WebAppInterface._mediaSession.getController().getTransportControls().play();
             }
