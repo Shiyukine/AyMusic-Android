@@ -5,8 +5,6 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.app.TaskStackBuilder;
-import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -17,70 +15,31 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.AudioAttributes;
 import android.media.AudioFocusRequest;
-import android.media.AudioFormat;
 import android.media.AudioManager;
-import android.media.AudioTrack;
 import android.media.MediaMetadata;
 import android.media.session.MediaSession;
 import android.media.session.PlaybackState;
 import android.net.Uri;
 import android.os.Build;
-import android.os.Debug;
 import android.os.Handler;
-import android.os.ResultReceiver;
 import android.os.SystemClock;
-import android.service.notification.NotificationListenerService;
-import android.util.JsonReader;
 import android.util.Log;
 import android.view.KeyEvent;
-import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
-import android.webkit.JsResult;
-import android.webkit.MimeTypeMap;
-import android.webkit.ValueCallback;
-import android.webkit.WebResourceResponse;
-import android.webkit.WebSettings;
 import android.webkit.WebView;
 
-import androidx.activity.result.ActivityResultCallback;
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.RequiresApi;
-import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
-import androidx.core.content.FileProvider;
 
-import org.jetbrains.annotations.NotNull;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.json.JSONStringer;
-
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Type;
-import java.net.HttpCookie;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-
-import kotlin.Unit;
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.Interceptor;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
 
 public class WebAppInterface {
     Context mContext;
@@ -323,10 +282,18 @@ public class WebAppInterface {
     HashMap<String, String> requestGET = new HashMap<>();
 
     @JavascriptInterface
-    public String httpRequestGET(String url) {
+    @SuppressLint("StaticFieldLeak")
+    public void httpRequestGET(String url) {
         if(!requestGET.containsKey(url)) {
             try {
-                OkHttpClient client = new OkHttpClient();
+                new getData() {
+                    @Override
+                    protected void onPostExecute(String s) {
+                        super.onPostExecute(s);
+                        view.evaluateJavascript("window.listeners.httpRequestCallback(`" + s.replace("\\", "\\\\").replace("${", "\\${").replace("`", "\\`") + "`)", null);
+                    }
+                }.execute(url);
+                /*OkHttpClient client = new OkHttpClient();
                 /*try {
                     client.networkInterceptors().add(new Interceptor() {
                         @Override
@@ -335,20 +302,20 @@ public class WebAppInterface {
                         }
                     });
                 } catch (Exception e) {
-                }*/
+                }*
                 Request.Builder build = new Request.Builder().url(url);
                 Request req = build.build();
                 Response resp = client.newCall(req).execute();
                 String nhtml = Objects.requireNonNull(resp.body()).string();
                 requestGET.put(url, nhtml);
-                return nhtml;
+                return nhtml;*/
             } catch (Exception e) {
                 e.printStackTrace();
-                return null;
+                //return null;
             }
         }
         else {
-            return requestGET.get(url);
+            view.evaluateJavascript("window.listeners.httpRequestCallback(`" + requestGET.get(url).replace("\\", "\\\\").replace("${", "\\${").replace("`", "\\`") + "`)", null);
         }
     }
 
@@ -419,6 +386,13 @@ public class WebAppInterface {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public static ArrayList<String> bpWR = new ArrayList<>();
+
+    @JavascriptInterface
+    public void addBypassWebRequest(String url) {
+        if(!bpWR.contains(url)) bpWR.add(url);
     }
 
     @JavascriptInterface

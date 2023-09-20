@@ -271,7 +271,7 @@ public class MainActivity extends AppCompatActivity {
                         return super.shouldInterceptRequest(view, request);
                     }
                 }
-                if((request.getUrl().toString().contains("youtube.com") || request.getUrl().toString().contains("google.com") || request.getUrl().toString().contains("spotify.com") || ScriptInjecter.haveScriptForUrl(request.getUrl().toString())) && request.getMethod().equals("GET")) {
+                if((WebAppInterface.bpWR.contains(request.getUrl().toString()) || request.getUrl().toString().contains("youtube.com") || request.getUrl().toString().contains("google.com") || request.getUrl().toString().contains("spotify.com") || ScriptInjecter.haveScriptForUrl(request.getUrl().toString())) && request.getMethod().equals("GET")) {
                     try {
                         //String nhtml = new getData().execute(request.getUrl().toString()).get();
                         HttpURLConnection connection = (HttpURLConnection) (new URL(request.getUrl().toString())).openConnection();
@@ -358,7 +358,15 @@ public class MainActivity extends AppCompatActivity {
                         }
                         else {
                             //is = Objects.requireNonNull(resp.body()).byteStream();
-                            is = connection.getInputStream();;
+                            InputStream in = connection.getInputStream();
+                            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                            byte[] buffer = new byte[1024];
+                            int len;
+                            while ((len = in.read(buffer)) > -1 ) {
+                                baos.write(buffer, 0, len);
+                            }
+                            baos.flush();
+                            is = new ByteArrayInputStream(baos.toByteArray());
                         }
                         String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(MimeTypeMap.getFileExtensionFromUrl(request.getUrl().toString()));
                         Map<String, String> respH = new HashMap<>();
@@ -369,6 +377,7 @@ public class MainActivity extends AppCompatActivity {
                                 for (String val : entries.getValue()) {
                                     if (!h.toLowerCase().equals("x-frame-options") && !h.toLowerCase().equals("content-security-policy-report-only")
                                             && !h.toLowerCase().equals("Cross-Origin-Opener-Policy-Report-Only".toLowerCase())
+                                            && !h.toLowerCase().equals("Cross-Origin-Resource-Policy".toLowerCase())
                                             && !h.toLowerCase().equals("Permissions-Policy".toLowerCase())
                                             && !h.toLowerCase().equals("Report-To".toLowerCase())
                                             //&& !h.toLowerCase().equals("Content-Security-Policy".toLowerCase())) respH.put(h, resp.header(h));
