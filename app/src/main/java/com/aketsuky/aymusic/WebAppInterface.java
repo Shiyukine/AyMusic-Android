@@ -290,7 +290,12 @@ public class WebAppInterface {
                     @Override
                     protected void onPostExecute(String s) {
                         super.onPostExecute(s);
-                        view.evaluateJavascript("window.listeners.httpRequestCallback(`" + s.replace("\\", "\\\\").replace("${", "\\${").replace("`", "\\`") + "`)", null);
+                        if(s != null && !s.equals("")) {
+                            view.evaluateJavascript("window.listeners.httpRequestCallback(`" + s.replace("\\", "\\\\").replace("${", "\\${").replace("`", "\\`") + "`)", null);
+                        }
+                        else {
+                            view.evaluateJavascript("window.listeners.httpRequestCallback(null)", null);
+                        }
                     }
                 }.execute(url);
                 /*OkHttpClient client = new OkHttpClient();
