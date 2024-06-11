@@ -26,20 +26,29 @@ import android.os.SystemClock;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.webkit.CookieManager;
+import android.webkit.CookieSyncManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 
 import androidx.annotation.RequiresApi;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 public class WebAppInterface {
     Context mContext;
@@ -47,6 +56,7 @@ public class WebAppInterface {
     public static MainActivity mainActivity;
     static HashMap<String, String> clientsToken = new HashMap<>();
     public static MediaSession _mediaSession = null;
+    public static String postData = null;
     final String MEDIA_SESSION_TAG = "AyMusic";
     String channelId = "AyMusicPlayer";
     MediaButtonIntentReceiver receiver;
@@ -325,6 +335,70 @@ public class WebAppInterface {
     }
 
     @JavascriptInterface
+    @SuppressLint({"StaticFieldLeak"})
+    public String httpRequestPOST(String url, String data, String contentType) {
+        try {
+            String urlDom = new URL(url).getHost();
+            if(urlDom.split("\\.").length > 2) {
+                String tmp = "";
+                String[] spl = urlDom.split("\\.");
+                for(int i = spl.length - 2; i < spl.length; i++) {
+                    tmp += spl[i] + ".";
+                }
+                urlDom = tmp.substring(0, tmp.length() - 1);
+            }
+            //urlDom = "https://" + new URL(url).getHost() + "/";
+            Log.e("fsfsdfsdfdddd", urlDom);
+            HttpURLConnection connection = (HttpURLConnection)(new URL(url)).openConnection();
+            connection.setConnectTimeout(5000);
+            connection.setReadTimeout(5000);
+            connection.setInstanceFollowRedirects(false);
+            connection.setDoOutput(true);
+            connection.setRequestMethod("POST");
+            connection.addRequestProperty("Content-Type", contentType);
+            OutputStream os = connection.getOutputStream();
+            OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8);
+            osw.write(data);
+            osw.flush();
+            osw.close();
+            os.close();
+            connection.connect();
+            for (Map.Entry<String, List<String>> entry : connection.getHeaderFields().entrySet()) {
+                String h = entry.getKey();
+                if(h != null && h.toLowerCase().equals("set-cookie")) {
+                    for(String val : entry.getValue()) {
+                        String nval = val.replace("; Secure", "").replace("; SameSite=lax", "") + "; SameSite=None";
+                        Log.e("fsfsdfsfs", nval);
+                        String[] info = nval.split(";");
+                        String domain = info[1].split("=")[1];
+                        Log.e("fsfsdfsfs", domain);
+                        CookieManager.getInstance().setCookie(urlDom, val);
+                        CookieManager.getInstance().flush();
+                    }
+                }
+            }
+
+            BufferedInputStream bis = new BufferedInputStream(connection.getInputStream());
+            ByteArrayOutputStream buf = new ByteArrayOutputStream();
+
+            for(int result2 = bis.read(); result2 != -1; result2 = bis.read()) {
+                buf.write((byte)result2);
+            }
+
+            String result = buf.toString();
+            return result;
+        } catch (Exception var15) {
+            var15.printStackTrace();
+            return "mmh";
+        }
+    }
+
+    @JavascriptInterface
+    public void setPostData(String data, String contentType) {
+        WebAppInterface.postData = data;
+    }
+
+    @JavascriptInterface
     public void syncCookies() {
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().acceptCookie();
@@ -336,11 +410,13 @@ public class WebAppInterface {
         String CookieValue = null;
         CookieManager cookieManager = CookieManager.getInstance();
         String cookies = cookieManager.getCookie(siteName);
-        String[] temp=cookies.split(";");
-        HashMap<String, String> out = new HashMap<>();
-        for (String ar1 : temp ){
-            if(ar1.contains(cookieName)){
-                return ar1.split("=")[1];
+        if(cookies != null) {
+            String[] temp = cookies.split(";");
+            HashMap<String, String> out = new HashMap<>();
+            for (String ar1 : temp) {
+                if (ar1.contains(cookieName)) {
+                    return ar1.split("=")[1];
+                }
             }
         }
         return "";
