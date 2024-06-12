@@ -304,7 +304,7 @@ public class WebAppInterface {
                             view.evaluateJavascript("window.listeners.httpRequestCallback(`" + s.replace("\\", "\\\\").replace("${", "\\${").replace("`", "\\`") + "`)", null);
                         }
                         else {
-                            view.evaluateJavascript("window.listeners.httpRequestCallback(null)", null);
+                            view.evaluateJavascript("window.listeners.httpRequestCallback('')", null);
                         }
                     }
                 }.execute(url);
@@ -457,7 +457,9 @@ public class WebAppInterface {
     @JavascriptInterface
     public void saveCache(String path, byte[] data) {
         try {
-            File dir = new File(mainActivity.getCacheDir() + "/" + path.substring(0, path.lastIndexOf("/")));
+            int i = path.lastIndexOf("/");
+            if(i < 0) i = 0;
+            File dir = new File(mainActivity.getCacheDir() + "/" + path.substring(0, i));
             if (!dir .exists()) {
                 dir.mkdirs();
             }
