@@ -38,9 +38,6 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
-import com.aketsuky.aymusic.konstantinschubert.writeinterceptingwebview.WriteHandlingWebResourceRequest;
-import com.aketsuky.aymusic.konstantinschubert.writeinterceptingwebview.WriteHandlingWebViewClient;
-
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
