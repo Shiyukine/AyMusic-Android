@@ -239,12 +239,12 @@ public class MainActivity extends AppCompatActivity {
                         Collection<String> hashset = new ArrayList<>(Arrays.asList(newUrl.split("\\.")));
                         hashset.remove(newUrl.split("\\.")[newUrl.split("\\.").length - 1]);
                         newUrl = TextUtils.join(".", hashset);
-                        Log.e("sdqfdsqfqs", newUrl);
+                        //Log.e("sdqfdsqfqs", newUrl);
                         InputStream is = getContentResolver().openInputStream(Uri.parse(newUrl));
                         for(Map.Entry<String, String> header : request.getRequestHeaders().entrySet()) {
                             if(header.getKey().equals("Range")) {
                                 int skip = Integer.parseInt(header.getValue().split("=")[1].split("-")[0]);
-                                Log.e("dqffqsdfsqfsd", skip + "");
+                                //Log.e("dqffqsdfsqfsd", skip + "");
                                 //is.skip(skip);
                             }
                         }
@@ -276,7 +276,7 @@ public class MainActivity extends AppCompatActivity {
                         return super.shouldInterceptRequest(view, request);
                     }
                 }
-                if((WebAppInterface.bpWR.contains(request.getUrl().toString()) || request.getUrl().toString().contains("youtube.com") || request.getUrl().toString().contains("google.com") || request.getUrl().toString().contains("spotify.com") || ScriptInjecter.haveScriptForUrl(request.getUrl().toString())) && !request.getMethod().equals("OPTIONS")) {
+                if((WebAppInterface.bpWR.contains(request.getUrl().toString()) || request.getUrl().toString().contains("youtube.com") || request.getUrl().toString().contains("google.com") || request.getUrl().toString().contains("spotify.com") || ScriptInjecter.haveScriptForUrl(request.getUrl().toString())) && (request.getMethod().equals("GET") || WebAppInterface.interceptAll.contains(request.getUrl().toString()))) {
                     try {
                         //String nhtml = new getData().execute(request.getUrl().toString()).get();
                         HttpURLConnection connection = (HttpURLConnection) (new URL(request.getUrl().toString())).openConnection();
@@ -293,6 +293,7 @@ public class MainActivity extends AppCompatActivity {
                             osw.flush();
                             osw.close();
                             os.close();
+                            WebAppInterface.postData = null;
                         }
                         for(Map.Entry<String, String> head : request.getRequestHeaders().entrySet()) {
                             connection.addRequestProperty(head.getKey(), head.getValue());
@@ -302,7 +303,7 @@ public class MainActivity extends AppCompatActivity {
                         if(CookieManager.getInstance().getCookie(cookieUrl) != null) {
                             for (String cookie : CookieManager.getInstance().getCookie(cookieUrl).split("; ")) {
                                 connection.addRequestProperty("Cookie", cookie);
-                                Log.e("fdsfsdfsdfsdfs",  cookieUrl + " " + cookie);
+                                //Log.e("fdsfsdfsdfsdfs",  cookieUrl + " " + cookie);
                             }
                         }
                         connection.connect();
@@ -556,6 +557,21 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                if (request.getUrl().toString().contains("https://api-auth.soundcloud.com/oauth/authorize")) {
+                    Log.e("fdqfsdfsdq", request.getUrl().getQueryParameter("client_id"));
+                    WebAppInterface.clientsToken.put("Soundcloud", request.getUrl().getQueryParameter("client_id"));
+                    Handler mainHandler = new Handler(getMainLooper());
+
+                    Runnable myRunnable = new Runnable() {
+                        @Override
+                        public void run() {
+                            view.stopLoading();
+                            view.loadUrl("about:blank");
+                            view.getSettings().setJavaScriptEnabled(false);
+                        } // This is your code
+                    };
+                    mainHandler.post(myRunnable);
+                }
                 for(Map.Entry<String, String> head : request.getRequestHeaders().entrySet()) {
                     if(request.getUrl().toString().contains("spotify.com") && head.getKey().toLowerCase().equals("authorization".toLowerCase())) {
                         Log.e("fdqfsdfsdq", head.getValue());

@@ -373,10 +373,11 @@ public class WebAppInterface {
                         String domain = info[1].split("=")[1];
                         Log.e("fsfsdfsfs", domain);
                         CookieManager.getInstance().setCookie(urlDom, val);
-                        CookieManager.getInstance().flush();
                     }
                 }
             }
+
+            CookieManager.getInstance().flush();
 
             BufferedInputStream bis = new BufferedInputStream(connection.getInputStream());
             ByteArrayOutputStream buf = new ByteArrayOutputStream();
@@ -474,6 +475,13 @@ public class WebAppInterface {
     @JavascriptInterface
     public void addBypassWebRequest(String url) {
         if(!bpWR.contains(url)) bpWR.add(url);
+    }
+
+    public static ArrayList<String> interceptAll = new ArrayList<>();
+
+    @JavascriptInterface
+    public void addInterceptAllWebRequest(String url) {
+        if(!interceptAll.contains(url)) interceptAll.add(url);
     }
 
     @JavascriptInterface
