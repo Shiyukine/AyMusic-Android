@@ -305,6 +305,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                         connection.connect();
                         if(connection.getResponseCode() >= 300 && connection.getResponseCode() <= 399) {
+                            if(!WebAppInterface.interceptAll.contains(request.getUrl().toString())) return null;
                             Map<String, String> respH = new HashMap<>();
                             //for(String h : resp.headers().names()) {
                             for(Map.Entry<String, List<String>> entries : connection.getHeaderFields().entrySet()) {
@@ -363,25 +364,33 @@ public class MainActivity extends AppCompatActivity {
                             String nhtml = output;
                             if(nhtml.contains("</body>")) {
                                 for (String s : ScriptInjecter.getScriptsForUrl(request.getUrl().toString())) {
-                                    nhtml = nhtml.replace("</body>", "<script>" +
-                                            "document.querySelectorAll(\"form\").forEach(x => {\n" +
-                                            "   let form = x;\n" +
-                                            "   console.log('found', form);\n" +
-                                            "   form.onsubmit = () => {\n" +
-                                            "      var kvpairs = [];\n" +
-                                            "      for (var i = 0; i < form.elements.length; i++) {\n" +
-                                            "         var e = form.elements[i];\n" +
-                                            "         kvpairs.push(encodeURIComponent(e.name) + \"=\" + encodeURIComponent(e.value));\n" +
-                                            "      }\n" +
-                                            "      var queryString = kvpairs.join(\"&\");\n" +
-                                            "      console.log(queryString);\n" +
-                                            "      boundobject.setPostData(queryString, \"\");\n" +
-                                            "      return true;\n" +
-                                            "   }\n" +
-                                            "});\n" +
-                                            "" + s + "; " +
-                                            "console.log(location.href);" +
-                                            "</script></body>");
+                                    if(WebAppInterface.interceptAll.contains(request.getUrl().toString())) {
+                                        nhtml = nhtml.replace("</body>", "<script>" +
+                                                "document.querySelectorAll(\"form\").forEach(x => {\n" +
+                                                "   let form = x;\n" +
+                                                "   console.log('found', form);\n" +
+                                                "   form.onsubmit = () => {\n" +
+                                                "      var kvpairs = [];\n" +
+                                                "      for (var i = 0; i < form.elements.length; i++) {\n" +
+                                                "         var e = form.elements[i];\n" +
+                                                "         kvpairs.push(encodeURIComponent(e.name) + \"=\" + encodeURIComponent(e.value));\n" +
+                                                "      }\n" +
+                                                "      var queryString = kvpairs.join(\"&\");\n" +
+                                                "      console.log(queryString);\n" +
+                                                "      boundobject.setPostData(queryString, \"\");\n" +
+                                                "      return true;\n" +
+                                                "   }\n" +
+                                                "});\n" +
+                                                "" + s + "; " +
+                                                "console.log(location.href);" +
+                                                "</script></body>");
+                                    }
+                                    else {
+                                        nhtml = nhtml.replace("</body>", "<script>" +
+                                                "" + s + "; " +
+                                                "console.log(location.href);" +
+                                                "</script></body>");
+                                    }
                                 }
                                 //if(nhtml.contains("<body>")) Log.e("fdsqfsq", nhtml);
                                 is = new ByteArrayInputStream(nhtml.getBytes(StandardCharsets.UTF_8));
