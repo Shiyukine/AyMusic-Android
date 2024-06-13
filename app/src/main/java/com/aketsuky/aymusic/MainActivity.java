@@ -114,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
 
                                     String name = filename.substring(0, filename.lastIndexOf("."));
                                     String extension = filename.substring(filename.lastIndexOf(".") + 1);
-                                    webView.evaluateJavascript("listeners.filePickerCallback([`" + uri.toString() + "." + extension + "`])", null);
+                                    webView.evaluateJavascript("listeners.filePickerCallback([[`" + uri.toString() + "." + extension + "`, `" + name + "." + extension + "`]])", null);
                                 }
                             } else {
                                 webView.evaluateJavascript("listeners.filePickerCallback([])", null);

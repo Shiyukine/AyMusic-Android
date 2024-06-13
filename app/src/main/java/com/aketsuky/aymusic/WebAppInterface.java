@@ -441,7 +441,9 @@ public class WebAppInterface {
     @JavascriptInterface
     public void saveData(String path, byte[] data) {
         try {
-            File dir = new File(mainActivity.getDataDir() + "/" + path.substring(0, path.lastIndexOf("/")));
+            int i = path.lastIndexOf("/");
+            if(i < 0) i = 0;
+            File dir = new File(mainActivity.getDataDir() + "/" + path.substring(0, i));
             if (!dir .exists()) {
                 dir.mkdirs();
             }
@@ -469,6 +471,38 @@ public class WebAppInterface {
             fos.close();
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    @JavascriptInterface
+    public boolean removeCache(String path) {
+        try {
+            int i = path.lastIndexOf("/");
+            if(i < 0) i = 0;
+            File dir = new File(mainActivity.getCacheDir() + "/" + path.substring(0, i));
+            if (dir .exists()) {
+                return Utils.deleteDir(dir);
+            }
+            return false;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    @JavascriptInterface
+    public boolean removeData(String path) {
+        try {
+            int i = path.lastIndexOf("/");
+            if(i < 0) i = 0;
+            File dir = new File(mainActivity.getDataDir() + "/" + path.substring(0, i));
+            if (dir .exists()) {
+                return Utils.deleteDir(dir);
+            }
+            return false;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
         }
     }
 

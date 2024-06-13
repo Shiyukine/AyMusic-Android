@@ -17,6 +17,8 @@ public class ScriptInjecter {
         if(!map.containsKey(url)) {
             map.put(url, script);
         }
+        else
+            map.replace(url, script);
     }
 
     public static boolean haveScriptForUrl(String url) {
