@@ -147,7 +147,8 @@ public class MainActivity extends AppCompatActivity {
                 CookieManager.getInstance().setAcceptCookie(true);
                 CookieManager.getInstance().acceptCookie();
                 CookieManager.getInstance().flush();*/
-                view.evaluateJavascript("var intev = setInterval(() => {\n" +
+                view.evaluateJavascript("if(!loaded) {" +
+                        "var intev = setInterval(() => {\n" +
                         "            if(!loaded) {\n" +
                         "                console.log('Attempt registerClient')\n" +
                         "                if(typeof app != 'undefined' && app) {\n" +
@@ -159,7 +160,8 @@ public class MainActivity extends AppCompatActivity {
                         "                clearInterval(intev)\n" +
                         "            }\n" +
                         "        }, 100)\n" +
-                        "        app.registerClient('Android', 'v" + BuildConfig.VERSION_NAME + "', " + BuildConfig.VERSION_CODE + ", window.boundobject, " + (BuildConfig.IS_RELEASE) + ")", null);
+                        "        app.registerClient('Android', 'v" + BuildConfig.VERSION_NAME + "', " + BuildConfig.VERSION_CODE + ", window.boundobject, " + (BuildConfig.IS_RELEASE) + ")\n" +
+                        "}", null);
                 super.onPageFinished(view, url);
             }
 
@@ -706,6 +708,24 @@ public class MainActivity extends AppCompatActivity {
         view.evaluateJavascript("window.listeners.changeDocumentVisibility(false)", null);
         view.setVisibility(View.GONE);
         MediaWebView.changeVisibility = false;*/
+    }
+
+    private Semaphore semaphore2 = new Semaphore(1);
+
+    @Override
+    protected void onDestroy() {
+        try {
+            semaphore2.acquire();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        MainActivity.actualWb.evaluateJavascript("window.listeners.player.disconnect()", new ValueCallback<String>() {
+            @Override
+            public void onReceiveValue(String s) {
+                semaphore2.release();
+            }
+        });
+        super.onDestroy();
     }
 
     @Override

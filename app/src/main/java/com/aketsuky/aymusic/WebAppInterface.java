@@ -61,6 +61,7 @@ public class WebAppInterface {
     String channelId = "AyMusicPlayer";
     MediaButtonIntentReceiver receiver;
     boolean itsMe = false;
+    public static boolean registered = false;
 
     WebAppInterface(Context c, WebView wv, MainActivity main) {
         mContext = c;
@@ -226,6 +227,7 @@ public class WebAppInterface {
 
     @JavascriptInterface
     public String getSettingFile() {
+        WebAppInterface.registered = true;
         SharedPreferences set = mainActivity.getSharedPreferences("UserConfig", 0);
         return set.getString("json", "{}");
     }
@@ -722,7 +724,7 @@ public class WebAppInterface {
                     mContext, 0, resultIntent, PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_UPDATE_CURRENT);
         }
         Notification noti = null;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && _mediaSession.getController().getMetadata() != null) {
             noti = new Notification.Builder(context, channelId)
                     .setSmallIcon(R.drawable.ic_stat_name)
                     .setContentTitle(_mediaSession.getController().getMetadata().getString(MediaMetadata.METADATA_KEY_TITLE))
