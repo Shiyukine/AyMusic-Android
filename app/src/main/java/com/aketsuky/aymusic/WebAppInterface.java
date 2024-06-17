@@ -670,7 +670,7 @@ public class WebAppInterface {
                 .build();
         _mediaSession.setPlaybackState(state);
         mediaNotify();
-        if(MyService.instance == null && playing) {
+        if(MyService.instance == null && playing && WebAppInterface.aNoti != null) {
             Intent myService = new Intent(mainActivity, MyService.class);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 view.getContext().startForegroundService(myService);

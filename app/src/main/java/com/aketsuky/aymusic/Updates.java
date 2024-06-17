@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Handler;
+import android.util.Log;
 import android.webkit.WebView;
 
 import androidx.core.content.FileProvider;
@@ -47,7 +48,7 @@ public class Updates {
                                             "                    cur: 50,\n" +
                                             "                    max: 100\n" +
                                             "                })", null);
-                                    String info = json.getString("***INFOS***");
+                                    String info = Updates.servUrl.replace("https://", "https://files.") + "dl/AyMusic/Updates/android/%file%";
                                     int code = json.getInt("versionCode");
                                     view.evaluateJavascript("updateCallBack({\n" +
                                             "                    step: 1,\n" +
