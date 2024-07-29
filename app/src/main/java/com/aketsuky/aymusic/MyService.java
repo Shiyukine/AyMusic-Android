@@ -34,7 +34,8 @@ public class MyService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         wb = MainActivity.actualWb;
         instance = this;
-        startForeground(1, WebAppInterface.aNoti);
+        if(WebAppInterface.aNoti != null)
+            startForeground(1, WebAppInterface.aNoti);
         return super.onStartCommand(intent, flags, startId);
     }
 
