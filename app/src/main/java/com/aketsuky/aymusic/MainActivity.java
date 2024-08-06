@@ -61,6 +61,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
 
+import static android.content.ContentValues.TAG;
+
 public class MainActivity extends AppCompatActivity {
 
     Map<String, String> loadedAssets = new HashMap<>();
@@ -163,34 +165,6 @@ public class MainActivity extends AppCompatActivity {
                         "        app.registerClient('Android', 'v" + BuildConfig.VERSION_NAME + "', " + BuildConfig.VERSION_CODE + ", window.boundobject, " + (BuildConfig.IS_RELEASE) + ")\n" +
                         "}", null);
                 super.onPageFinished(view, url);
-            }
-
-            @Override
-            public void onLoadResource(WebView view, String url) {
-                // TODO Auto-generated method stub
-                //Log.e("ddsqqsd", url);
-                view.evaluateJavascript("var _scr = {};\n" +
-                        "        for (const key in screen) {\n" +
-                        "            switch (key) {\n" +
-                        "                case \"width\":\n" +
-                        "                    _scr[key] = 1920;\n" +
-                        "                    break;\n" +
-                        "                case \"height\":\n" +
-                        "                    _scr[key] = 1080;\n" +
-                        "                    break;\n" +
-                        "                case \"availWidth\":\n" +
-                        "                    _scr[key] = 1920;\n" +
-                        "                    break;\n" +
-                        "                case \"availHeight\":\n" +
-                        "                    _scr[key] = 1080;\n" +
-                        "                    break;\n" +
-                        "                default:\n" +
-                        "                    _scr[key] = screen[key];\n" +
-                        "                    break;\n" +
-                        "            }\n" +
-                        "        }\n" +
-                        "        window.screen = _scr;", null);
-                super.onLoadResource(view, url);
             }
 
             @Override
@@ -318,9 +292,9 @@ public class MainActivity extends AppCompatActivity {
                                             String nVal = val;
                                             if (h.toLowerCase().equals("set-cookie")) {
                                                 if (val.contains("SameSite=lax")) {
-                                                    nVal = val.replace("SameSite=lax", "SameSite=None; Secure");
+                                                    nVal = val.replace("SameSite=lax", "SameSite=None; Secure; Partitioned");
                                                 } else {
-                                                    nVal = val + "; SameSite=None";
+                                                    nVal = val + "; SameSite=None; Partitioned";
                                                 }
                                             }
                                             respH.put(h, nVal);
@@ -343,7 +317,8 @@ public class MainActivity extends AppCompatActivity {
                             return new WebResourceResponse("text/html", "utf-8", 200, "OK", respH, new ByteArrayInputStream(content.getBytes()));
                         }
                         InputStream is = null;
-                        if(ScriptInjecter.haveScriptForUrl(request.getUrl().toString())) {
+                        HashMap<String, String> overrides = ScriptInjecter.haveOverrideResponseForRequest(request.getUrl().toString(), connection.getHeaderFields());
+                        if(ScriptInjecter.haveScriptForUrl(request.getUrl().toString()) || overrides != null) {
                             //String nhtml = resp.body().string();
                             InputStream in = connection.getInputStream();
                             ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -364,6 +339,12 @@ public class MainActivity extends AppCompatActivity {
                             //
                             String output = html.toString();
                             String nhtml = output;
+                            if (overrides != null) {
+                                for(Map.Entry<String, String> entr : overrides.entrySet()) {
+                                    nhtml = nhtml.replace(entr.getKey(), entr.getValue());
+                                }
+                                is = new ByteArrayInputStream(nhtml.getBytes(StandardCharsets.UTF_8));
+                            }
                             if(nhtml.contains("</body>")) {
                                 for (String s : ScriptInjecter.getScriptsForUrl(request.getUrl().toString())) {
                                     if(WebAppInterface.interceptAll.contains(request.getUrl().toString())) {
@@ -397,42 +378,9 @@ public class MainActivity extends AppCompatActivity {
                                 //if(nhtml.contains("<body>")) Log.e("fdsqfsq", nhtml);
                                 is = new ByteArrayInputStream(nhtml.getBytes(StandardCharsets.UTF_8));
                             }
-                            else {
+                            if(is == null) {
                                 is = is1;
                             }
-                        }
-                        else if(request.getUrl().toString().contains("spotify.com")) {
-                            //String nhtml = resp.body().string();
-                            InputStream in = connection.getInputStream();
-                            BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-                            StringBuilder html = new StringBuilder();
-                            for (String line; (line = reader.readLine()) != null; ) {
-                                html.append(line + "\n");
-                            }
-                            in.close();
-
-                            //
-                            String output = html.toString();
-                            String nhtml = output;
-                            nhtml = nhtml.replace("<head>", "<head><script>" + "setInterval(() => {" +
-                                    "var _scr = {};\n" +
-                                    "        for (const key in screen) {\n" +
-                                    "            switch (key) {\n" +
-                                    "                case \"width\":\n" +
-                                    "                    _scr[key] = 1080;\n" +
-                                    "                    break;\n" +
-                                    "                case \"height\":\n" +
-                                    "                    _scr[key] = 1920;\n" +
-                                    "                    break;\n" +
-                                    "                default:\n" +
-                                    "                    _scr[key] = screen[key];\n" +
-                                    "                    break;\n" +
-                                    "            }\n" +
-                                    "        }\n" +
-                                    "        window.screen = _scr;" +
-                                    "}, 1)" +"; console.log('gfusigusgoiudjdsgjd')</script>");
-                            //if(nhtml.contains("<body>")) Log.e("fdsqfsq", nhtml);
-                            is = new ByteArrayInputStream(nhtml.getBytes(StandardCharsets.UTF_8));
                         }
                         else {
                             //is = Objects.requireNonNull(resp.body()).byteStream();
@@ -456,10 +404,11 @@ public class MainActivity extends AppCompatActivity {
                                         String nVal = val;
                                         if (h.toLowerCase().equals("set-cookie")) {
                                             if (val.contains("SameSite=lax")) {
-                                                nVal = val.replace("SameSite=lax", "SameSite=None; Secure");
+                                                nVal = val.replace("SameSite=lax", "SameSite=None; Secure; Partitioned");
                                             } else {
-                                                nVal = val + "; SameSite=None";
+                                                nVal = val + "; SameSite=None; Partitioned";
                                             }
+                                            Log.d(TAG, "shouldInterceptRequest: " + nVal);
                                         }
                                         respH.put(h, nVal);
                                     }

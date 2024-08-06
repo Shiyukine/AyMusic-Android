@@ -32,6 +32,8 @@ import android.webkit.WebView;
 
 import androidx.annotation.RequiresApi;
 
+import org.json.JSONException;
+
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -369,7 +371,7 @@ public class WebAppInterface {
                 String h = entry.getKey();
                 if(h != null && h.toLowerCase().equals("set-cookie")) {
                     for(String val : entry.getValue()) {
-                        String nval = val.replace("; Secure", "").replace("; SameSite=lax", "") + "; SameSite=None";
+                        String nval = val.replace("; Secure", "").replace("; SameSite=lax", "") + "; SameSite=None; Partitioned";
                         Log.e("fsfsdfsfs", nval);
                         String[] info = nval.split(";");
                         String domain = info[1].split("=")[1];
@@ -553,6 +555,11 @@ public class WebAppInterface {
     @JavascriptInterface
     public void registerIframeUrl(String url, String script) {
         ScriptInjecter.addScript(url, script);
+    }
+
+    @JavascriptInterface
+    public void registerOverrideResponse(String json) throws JSONException {
+        ScriptInjecter.addOverrideResponse(json);
     }
 
     HashMap<String, Bitmap> bitmaps = new HashMap<>();

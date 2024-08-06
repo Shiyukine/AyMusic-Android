@@ -3,6 +3,10 @@ package com.aketsuky.aymusic;
 import android.util.Log;
 import android.webkit.WebView;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -12,6 +16,7 @@ import java.util.Set;
 
 public class ScriptInjecter {
     static HashMap<String, String> map = new HashMap<>();
+    static ArrayList<JSONObject> overList = new ArrayList<>();
 
     public static void addScript(String url, String script) {
         if(!map.containsKey(url)) {
@@ -19,6 +24,46 @@ public class ScriptInjecter {
         }
         else
             map.replace(url, script);
+    }
+
+    public static void addOverrideResponse(String json) throws JSONException {
+        JSONArray arr = new JSONArray(json);
+        for(int j = 0; j < arr.length(); j++) {
+            JSONObject obj = arr.getJSONObject(j);
+            JSONObject urlInfo = obj.getJSONObject("url");
+            JSONArray plats = obj.getJSONArray("platforms");
+            for (int i = 0; i < plats.length(); i++) {
+                if (plats.getString(i).equals("Android")) {
+                    for (JSONObject o : overList) {
+                        if (o.getJSONObject("url").getString("url").equals(urlInfo.getString("url")))
+                            return;
+                    }
+                    overList.add(obj);
+                }
+            }
+        }
+    }
+
+    public static HashMap<String, String> haveOverrideResponseForRequest(String url, Map<String, List<String>> headers) {
+        try {
+            for(JSONObject o : overList) {
+                if((o.getJSONObject("url").getBoolean("includes") && url.contains(o.getJSONObject("url").getString("url")) || url.equals(o.getJSONObject("url").getString("url")))
+                        && headers.containsKey(o.getJSONObject("header").getString("name"))
+                        && headers.get(o.getJSONObject("header").getString("name")).size() == 1
+                        && (o.getJSONObject("header").getBoolean("includes") && headers.get(o.getJSONObject("header").getString("name")).get(0).contains(o.getJSONObject("header").getString("value")) || headers.get(o.getJSONObject("header").getString("name")).get(0).equals(o.getJSONObject("header").getString("value")))) {
+                    HashMap<String, String> ret = new HashMap<>();
+                    for (int i = 0; i < o.getJSONArray("overrides").length(); i++) {
+                        ret.put(o.getJSONArray("overrides").getJSONObject(i).getString("search"), o.getJSONArray("overrides").getJSONObject(i).getString("replace"));
+                    }
+                    return ret;
+                }
+            }
+            return null;
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     public static boolean haveScriptForUrl(String url) {
