@@ -347,33 +347,10 @@ public class MainActivity extends AppCompatActivity {
                             }
                             if(nhtml.contains("</body>")) {
                                 for (String s : ScriptInjecter.getScriptsForUrl(request.getUrl().toString())) {
-                                    if(WebAppInterface.interceptAll.contains(request.getUrl().toString())) {
-                                        nhtml = nhtml.replace("</body>", "<script>" +
-                                                "document.querySelectorAll(\"form\").forEach(x => {\n" +
-                                                "   let form = x;\n" +
-                                                "   console.log('found', form);\n" +
-                                                "   form.onsubmit = () => {\n" +
-                                                "      var kvpairs = [];\n" +
-                                                "      for (var i = 0; i < form.elements.length; i++) {\n" +
-                                                "         var e = form.elements[i];\n" +
-                                                "         kvpairs.push(encodeURIComponent(e.name) + \"=\" + encodeURIComponent(e.value));\n" +
-                                                "      }\n" +
-                                                "      var queryString = kvpairs.join(\"&\");\n" +
-                                                "      console.log(queryString);\n" +
-                                                "      boundobject.setPostData(queryString, \"\");\n" +
-                                                "      return true;\n" +
-                                                "   }\n" +
-                                                "});\n" +
-                                                "" + s + "; " +
-                                                "console.log(location.href);" +
-                                                "</script></body>");
-                                    }
-                                    else {
-                                        nhtml = nhtml.replace("</body>", "<script>" +
-                                                "" + s + "; " +
-                                                "console.log(location.href);" +
-                                                "</script></body>");
-                                    }
+                                    nhtml = nhtml.replace("</body>", "<script>" +
+                                            "" + s + "; " +
+                                            "console.log(location.href);" +
+                                            "</script></body>");
                                 }
                                 //if(nhtml.contains("<body>")) Log.e("fdsqfsq", nhtml);
                                 is = new ByteArrayInputStream(nhtml.getBytes(StandardCharsets.UTF_8));
