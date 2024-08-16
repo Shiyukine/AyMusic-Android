@@ -28,7 +28,6 @@ import android.view.KeyEvent;
 import android.webkit.CookieManager;
 import android.webkit.CookieSyncManager;
 import android.webkit.JavascriptInterface;
-import android.webkit.ValueCallback;
 import android.webkit.WebView;
 
 import androidx.annotation.RequiresApi;
@@ -40,7 +39,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -478,47 +476,6 @@ public class WebAppInterface {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    @JavascriptInterface
-    public void saveCacheV2(String path, String url) {
-        view.evaluateJavascript("window.listeners.getFileData('" + url + "')", new ValueCallback<String>() {
-            @Override
-            public void onReceiveValue(String value) {
-                try {
-                    if(!value.contains("not found")) {
-                        int i = path.lastIndexOf("/");
-                        if (i < 0) i = 0;
-                        File dir = new File(mainActivity.getCacheDir() + "/" + path.substring(0, i));
-                        if (!dir.exists()) {
-                            dir.mkdirs();
-                        }
-                        File tempFile = new File(mainActivity.getCacheDir() + "/" + path);
-                        FileOutputStream fos = new FileOutputStream(tempFile);
-                        StringBuilder actualByte = new StringBuilder();
-                        ArrayList<Byte> list = new ArrayList<Byte>();
-                        for (int j = 1; j < value.length() - 1; j++) {
-                            String cursor = Character.toString(value.charAt(j));
-                            if (!cursor.equals(",")) actualByte.append(cursor);
-                            else {
-                                list.add((byte) (Integer.parseInt(actualByte.toString()) & 0xFF));
-                                // reset
-                                actualByte.setLength(0);
-                            }
-                        }
-                        if(actualByte.length() > 0) list.add((byte) (Integer.parseInt(actualByte.toString()) & 0xFF));
-                        byte[] data = new byte[list.size()];
-                        int j = 0;
-                        for (Byte b : list)
-                            data[j++] = b;
-                        fos.write(data);
-                        fos.close();
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
     }
 
     @JavascriptInterface
