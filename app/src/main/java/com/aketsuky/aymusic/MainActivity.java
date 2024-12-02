@@ -48,6 +48,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.lang.reflect.Method;
 import java.net.HttpCookie;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -418,10 +419,10 @@ public class MainActivity extends AppCompatActivity {
         webViewSettings.setAllowContentAccess(true);
         webViewSettings.setAllowFileAccessFromFileURLs(true);
         webViewSettings.setDomStorageEnabled(true);
-        webViewSettings.setAppCacheEnabled(true);
+        webViewSettings.setDatabaseEnabled(true);
         File dir = getCacheDir();
         if (!dir.exists()) dir.mkdirs();
-        webView.getSettings().setAppCachePath(dir.getPath());
+        handleWebSettings_setAppCachePath(webViewSettings, dir.getPath());
         webViewSettings.setSupportZoom(false);
         webViewSettings.setMediaPlaybackRequiresUserGesture(false);
         webViewSettings.setRenderPriority(WebSettings.RenderPriority.HIGH);
@@ -533,7 +534,7 @@ public class MainActivity extends AppCompatActivity {
         webViewSettings2.setAllowContentAccess(true);
         webViewSettings2.setAllowFileAccessFromFileURLs(true);
         webViewSettings2.setDomStorageEnabled(true);
-        webViewSettings2.setAppCacheEnabled(true);
+        webViewSettings2.setDatabaseEnabled(true);
         webViewSettings2.setMediaPlaybackRequiresUserGesture(false);
         webViewSettings2.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.5735.106 Safari/537.36");
         CookieManager.getInstance().setAcceptCookie(true);
@@ -662,5 +663,29 @@ public class MainActivity extends AppCompatActivity {
         view.evaluateJavascript("window.listeners.changeDocumentVisibility(true)", null);
         view.setVisibility(View.VISIBLE);
         MediaWebView.changeVisibility = false;*/
+    }
+
+    /**
+     * use reflection to avoid compilation failure when you set compileSdk>=33
+     * <p>
+     *
+     * @param webSettings  WebSettings
+     * @param appCachePath appCachePath
+     * @author androidmalin
+     */
+    public static void handleWebSettings_setAppCachePath(WebSettings webSettings, String appCachePath) {
+        if (webSettings == null) return;
+        if (appCachePath == null || appCachePath.isEmpty()) return;
+        if (Build.VERSION.SDK_INT >= 33) return;
+        try {
+            // public abstract void setAppCachePath(String appCachePath);
+            Class<?> webSettingsClazz = Class.forName("android.webkit.WebSettings");
+            //noinspection JavaReflectionMemberAccess
+            Method setAppCachePathMethod = webSettingsClazz.getDeclaredMethod("setAppCachePath", String.class);
+            setAppCachePathMethod.setAccessible(true);
+            setAppCachePathMethod.invoke(webSettings, appCachePath);
+        } catch (Throwable e) {
+            //ignore
+        }
     }
 }

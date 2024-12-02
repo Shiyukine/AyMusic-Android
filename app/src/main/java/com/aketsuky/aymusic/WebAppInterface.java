@@ -39,6 +39,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -604,7 +605,18 @@ public class WebAppInterface {
                 }
             } catch (Exception ex) {
                 ex.printStackTrace();
-                return null;
+                try {
+                    String newUrl = "/resources/icon.ico".substring(1);
+                    AssetManager am = mainActivity.getAssets();
+                    InputStream is = am.open(newUrl);
+                    Bitmap myBitmap = BitmapFactory.decodeStream(is);
+                    bitmaps.put(strURL, myBitmap);
+                    return myBitmap;
+                }
+                catch (Exception ex2) {
+                    ex2.printStackTrace();
+                    return null;
+                }
             }
         }
     }
@@ -620,7 +632,7 @@ public class WebAppInterface {
 
     @JavascriptInterface
     public void sessionChangeMediaMetadata(String title, String album, String artist, String artwork) {
-        boolean changeSession = !title.equals(this.title) && !artwork.equals(this.artwork);
+        boolean changeSession = !title.equals(this.title) && !artist.equals(this.artist) && !album.equals(this.album);
         this.title = title;
         this.album = album;
         this.artist = artist;
@@ -743,24 +755,25 @@ public class WebAppInterface {
                             context,
                             1,
                             new Intent("mediaPrevious"),
-                            PendingIntent.FLAG_MUTABLE
+                            PendingIntent.FLAG_IMMUTABLE
                     )))
                     .addAction(new Notification.Action(playing ? R.drawable.ic_baseline_pause_24 : R.drawable.ic_baseline_play_arrow_24, playing ? "Pause" : "Play", PendingIntent.getBroadcast(
                             context,
                             1,
                             new Intent(playing ? "mediaPause" : "mediaPlay"),
-                            PendingIntent.FLAG_MUTABLE
+                            PendingIntent.FLAG_MUTABLE | PendingIntent.FLAG_NO_CREATE
                     )))
                     .addAction(new Notification.Action(R.drawable.ic_baseline_skip_next_24, "Next", PendingIntent.getBroadcast(
                             context,
                             1,
                             new Intent("mediaNext"),
-                            PendingIntent.FLAG_MUTABLE
+                            PendingIntent.FLAG_IMMUTABLE
                     )))
                     .setContentIntent(resultPendingIntent)
                     //.setNotificationSilent()
                     .setSound(null)
                     .setStyle(new Notification.MediaStyle()
+                            .setShowActionsInCompactView(0, 1, 2)
                             .setMediaSession(_mediaSession.getSessionToken()))
                     .setChannelId(channelId)
                     //.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE)

@@ -104,7 +104,7 @@ public class WebViewPopup extends AppCompatActivity {
         webViewSettings.setAllowContentAccess(true);
         webViewSettings.setAllowFileAccessFromFileURLs(true);
         webViewSettings.setDomStorageEnabled(true);
-        webViewSettings.setAppCacheEnabled(true);
+        webViewSettings.setDatabaseEnabled(true);
         webViewSettings.setCacheMode(WebSettings.LOAD_NO_CACHE);
         webViewSettings.setMediaPlaybackRequiresUserGesture(false);
         webViewSettings.setRenderPriority(WebSettings.RenderPriority.HIGH);

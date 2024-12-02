@@ -47,15 +47,20 @@ public class ScriptInjecter {
     public static HashMap<String, String> haveOverrideResponseForRequest(String url, Map<String, List<String>> headers) {
         try {
             for(JSONObject o : overList) {
-                if((o.getJSONObject("url").getBoolean("includes") && url.contains(o.getJSONObject("url").getString("url")) || url.equals(o.getJSONObject("url").getString("url")))
-                        && headers.containsKey(o.getJSONObject("header").getString("name"))
-                        && headers.get(o.getJSONObject("header").getString("name")).size() == 1
-                        && (o.getJSONObject("header").getBoolean("includes") && headers.get(o.getJSONObject("header").getString("name")).get(0).contains(o.getJSONObject("header").getString("value")) || headers.get(o.getJSONObject("header").getString("name")).get(0).equals(o.getJSONObject("header").getString("value")))) {
-                    HashMap<String, String> ret = new HashMap<>();
-                    for (int i = 0; i < o.getJSONArray("overrides").length(); i++) {
-                        ret.put(o.getJSONArray("overrides").getJSONObject(i).getString("search"), o.getJSONArray("overrides").getJSONObject(i).getString("replace"));
+                for (int hi = 0; hi < o.getJSONArray("headers").length(); hi++) {
+                    String headerName = o.getJSONArray("headers").getJSONObject(hi).getString("name");
+                    String headerValue = o.getJSONArray("headers").getJSONObject(hi).getString("value");
+                    boolean headerIncludes = o.getJSONArray("headers").getJSONObject(hi).getBoolean("includes");
+                    if ((o.getJSONObject("url").getBoolean("includes") && url.contains(o.getJSONObject("url").getString("url")) || url.equals(o.getJSONObject("url").getString("url")))
+                            && headers.containsKey(headerName)
+                            && headers.get(headerName).size() == 1
+                            && (headerIncludes && headers.get(headerName).get(0).contains(headerValue) || headers.get(headerName).get(0).equals(headerValue))) {
+                        HashMap<String, String> ret = new HashMap<>();
+                        for (int i = 0; i < o.getJSONArray("overrides").length(); i++) {
+                            ret.put(o.getJSONArray("overrides").getJSONObject(i).getString("search"), o.getJSONArray("overrides").getJSONObject(i).getString("replace"));
+                        }
+                        return ret;
                     }
-                    return ret;
                 }
             }
             return null;
