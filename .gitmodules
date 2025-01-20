@@ -1,0 +1,3 @@
+[submodule "AyMusic-WebAssets"]
+	path = app/src/main/assets
+	url = https://github.com/Shiyukine/AyMusic-WebAssets
