@@ -3,13 +3,16 @@ package com.aketsuky.aymusic;
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.res.AssetManager;
 import android.database.Cursor;
 import android.graphics.Color;
@@ -72,10 +75,33 @@ public class MainActivity extends AppCompatActivity {
     AudioManager.OnAudioFocusChangeListener amOn;
 
     @Override
+    public Intent registerReceiver(@Nullable BroadcastReceiver receiver, IntentFilter filter) {
+        if (Build.VERSION.SDK_INT >= 34 && getApplicationInfo().targetSdkVersion >= 34) {
+            return super.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            return super.registerReceiver(receiver, filter);
+        }
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         //Log.e("vdfsxfdssd", "Bearer HUIHufsduhqiusdfuisiuYHfd".split("Bearer ")[1]);
         setContentView(R.layout.activity_main);
+        BroadcastReceiver mNoisyReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if( WebAppInterface._mediaSession != null) {
+                    WebAppInterface._mediaSession.getController().getTransportControls().pause();
+                }
+            }
+        };
+        IntentFilter filter = new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
+        if (Build.VERSION.SDK_INT >= 34 && getApplicationInfo().targetSdkVersion >= 34) {
+            registerReceiver(mNoisyReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(mNoisyReceiver, filter);
+        }
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
             actionBar.hide();
@@ -428,7 +454,7 @@ public class MainActivity extends AppCompatActivity {
         webViewSettings.setRenderPriority(WebSettings.RenderPriority.HIGH);
         webViewSettings.setBuiltInZoomControls(false);
         webView.setWebContentsDebuggingEnabled(true);
-        webViewSettings.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.5735.106 Safari/537.36");
+        webViewSettings.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36");
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView,true);
         webView.addJavascriptInterface(new WebAppInterface(this, webView, this), "boundobject");
@@ -536,7 +562,7 @@ public class MainActivity extends AppCompatActivity {
         webViewSettings2.setDomStorageEnabled(true);
         webViewSettings2.setDatabaseEnabled(true);
         webViewSettings2.setMediaPlaybackRequiresUserGesture(false);
-        webViewSettings2.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.5735.106 Safari/537.36");
+        webViewSettings2.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36");
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView2,true);
         amOn = new AudioManager.OnAudioFocusChangeListener() {
@@ -589,7 +615,8 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onPause() {
-        if(MyService.instance != null) {
+        super.onPause();
+        /*if(MyService.instance != null) {
             try {
                 semaphore.acquire();
             } catch (InterruptedException e) {

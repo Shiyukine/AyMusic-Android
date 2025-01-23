@@ -34,11 +34,15 @@ public class ScriptInjecter {
             JSONArray plats = obj.getJSONArray("platforms");
             for (int i = 0; i < plats.length(); i++) {
                 if (plats.getString(i).equals("Android")) {
+                    ArrayList<JSONObject> toRemove = new ArrayList<>();
                     for (JSONObject o : overList) {
-                        if (o.getJSONObject("url").getString("url").equals(urlInfo.getString("url")))
-                            return;
+                        if (o.getJSONObject("url").getString("url").equals(urlInfo.getString("url"))) toRemove.add(o);
+                    }
+                    for (JSONObject oToRem : toRemove) {
+                        overList.remove(oToRem);
                     }
                     overList.add(obj);
+                    break;
                 }
             }
         }
@@ -47,14 +51,25 @@ public class ScriptInjecter {
     public static HashMap<String, String> haveOverrideResponseForRequest(String url, Map<String, List<String>> headers) {
         try {
             for(JSONObject o : overList) {
-                for (int hi = 0; hi < o.getJSONArray("headers").length(); hi++) {
-                    String headerName = o.getJSONArray("headers").getJSONObject(hi).getString("name");
-                    String headerValue = o.getJSONArray("headers").getJSONObject(hi).getString("value");
-                    boolean headerIncludes = o.getJSONArray("headers").getJSONObject(hi).getBoolean("includes");
-                    if ((o.getJSONObject("url").getBoolean("includes") && url.contains(o.getJSONObject("url").getString("url")) || url.equals(o.getJSONObject("url").getString("url")))
-                            && headers.containsKey(headerName)
-                            && headers.get(headerName).size() == 1
-                            && (headerIncludes && headers.get(headerName).get(0).contains(headerValue) || headers.get(headerName).get(0).equals(headerValue))) {
+                if(o.getJSONArray("headers").length() > 0) {
+                    for (int hi = 0; hi < o.getJSONArray("headers").length(); hi++) {
+                        String headerName = o.getJSONArray("headers").getJSONObject(hi).getString("name");
+                        String headerValue = o.getJSONArray("headers").getJSONObject(hi).getString("value");
+                        boolean headerIncludes = o.getJSONArray("headers").getJSONObject(hi).getBoolean("includes");
+                        if ((o.getJSONObject("url").getBoolean("includes") && url.contains(o.getJSONObject("url").getString("url")) || url.equals(o.getJSONObject("url").getString("url")))
+                                && headers.containsKey(headerName)
+                                && headers.get(headerName).size() == 1
+                                && (headerIncludes && headers.get(headerName).get(0).contains(headerValue) || headers.get(headerName).get(0).equals(headerValue))) {
+                            HashMap<String, String> ret = new HashMap<>();
+                            for (int i = 0; i < o.getJSONArray("overrides").length(); i++) {
+                                ret.put(o.getJSONArray("overrides").getJSONObject(i).getString("search"), o.getJSONArray("overrides").getJSONObject(i).getString("replace"));
+                            }
+                            return ret;
+                        }
+                    }
+                }
+                else {
+                    if ((o.getJSONObject("url").getBoolean("includes") && url.contains(o.getJSONObject("url").getString("url"))) || url.equals(o.getJSONObject("url").getString("url"))) {
                         HashMap<String, String> ret = new HashMap<>();
                         for (int i = 0; i < o.getJSONArray("overrides").length(); i++) {
                             ret.put(o.getJSONArray("overrides").getJSONObject(i).getString("search"), o.getJSONArray("overrides").getJSONObject(i).getString("replace"));

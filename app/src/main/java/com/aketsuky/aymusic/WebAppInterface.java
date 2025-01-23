@@ -31,6 +31,7 @@ import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 
 import androidx.annotation.RequiresApi;
+import androidx.core.content.ContextCompat;
 
 import org.json.JSONException;
 
@@ -222,10 +223,10 @@ public class WebAppInterface {
         });
         receiver = new MediaButtonIntentReceiver();
         receiver.setWb(wv);
-        mContext.registerReceiver(receiver, new IntentFilter("mediaPause"));
-        mContext.registerReceiver(receiver, new IntentFilter("mediaPlay"));
-        mContext.registerReceiver(receiver, new IntentFilter("mediaNext"));
-        mContext.registerReceiver(receiver, new IntentFilter("mediaPrevious"));
+        ContextCompat.registerReceiver(mContext, receiver, new IntentFilter("mediaPause"), ContextCompat.RECEIVER_NOT_EXPORTED);
+        ContextCompat.registerReceiver(mContext, receiver, new IntentFilter("mediaPlay"), ContextCompat.RECEIVER_NOT_EXPORTED);
+        ContextCompat.registerReceiver(mContext, receiver, new IntentFilter("mediaNext"), ContextCompat.RECEIVER_NOT_EXPORTED);
+        ContextCompat.registerReceiver(mContext, receiver, new IntentFilter("mediaPrevious"), ContextCompat.RECEIVER_NOT_EXPORTED);
     }
 
     @JavascriptInterface
@@ -550,7 +551,12 @@ public class WebAppInterface {
 
     @JavascriptInterface
     public void addBadUrl(String[] urls) {
-        Adblock.urlBlocked.addAll(Arrays.asList(urls));
+        throw new RuntimeException("deprecated. use addBadUrl(string url, boolean includes)");
+    }
+
+    @JavascriptInterface
+    public void addBadUrl(String url, boolean includes) {
+        Adblock.urlBlocked.put(url, includes);
     }
 
     @JavascriptInterface
@@ -761,7 +767,7 @@ public class WebAppInterface {
                             context,
                             1,
                             new Intent(playing ? "mediaPause" : "mediaPlay"),
-                            PendingIntent.FLAG_MUTABLE | PendingIntent.FLAG_NO_CREATE
+                            PendingIntent.FLAG_IMMUTABLE
                     )))
                     .addAction(new Notification.Action(R.drawable.ic_baseline_skip_next_24, "Next", PendingIntent.getBroadcast(
                             context,
