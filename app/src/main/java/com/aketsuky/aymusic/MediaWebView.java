@@ -23,13 +23,8 @@ public class MediaWebView extends WebView {
         super(context, attrs, defStyleAttr);
     }
 
-    /*@Override
+    @Override
     protected void onWindowVisibilityChanged(int visibility) {
-        if(changeVisibility) {
-            super.onWindowVisibilityChanged(visibility);
-        }
-        else {
-            super.onWindowVisibilityChanged(View.VISIBLE);
-        }
-    }*/
+        super.onWindowVisibilityChanged(View.VISIBLE);
+    }
 }
