@@ -51,4 +51,9 @@ public class MyService extends Service {
         wb = MainActivity.actualWb;
         startForeground(1, WebAppInterface.aNoti);
     }*/
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+    }
 }
