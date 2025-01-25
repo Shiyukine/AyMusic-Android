@@ -512,11 +512,17 @@ public class WebAppInterface {
         }
     }
 
-    public static ArrayList<String> bpWR = new ArrayList<>();
+    public static HashMap<String, Boolean> bpWR = new HashMap<>();
 
     @JavascriptInterface
     public void addBypassWebRequest(String url) {
-        if(!bpWR.contains(url)) bpWR.add(url);
+        if(!bpWR.containsKey(url)) bpWR.put(url, false);
+    }
+
+    @JavascriptInterface
+    public void addBypassWebRequest(String url, boolean includes) {
+        if(!includes) addBypassWebRequest(url);
+        else if(!bpWR.containsKey(url)) bpWR.put(url, true);
     }
 
     public static ArrayList<String> interceptAll = new ArrayList<>();

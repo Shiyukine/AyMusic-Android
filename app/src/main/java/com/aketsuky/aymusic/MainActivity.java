@@ -3,10 +3,13 @@ package com.aketsuky.aymusic;
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.webkit.ServiceWorkerClientCompat;
+import androidx.webkit.ServiceWorkerControllerCompat;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
@@ -33,6 +36,7 @@ import android.view.WindowManager;
 import android.webkit.CookieManager;
 import android.webkit.MimeTypeMap;
 import android.webkit.PermissionRequest;
+import android.webkit.SafeBrowsingResponse;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -54,11 +58,13 @@ import java.io.OutputStreamWriter;
 import java.lang.reflect.Method;
 import java.net.HttpCookie;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -170,12 +176,14 @@ public class MainActivity extends AppCompatActivity {
         webView.getSettings().setAllowContentAccess(true);
         final boolean[] first = {true};
         webView.setWebViewClient(new WebViewClient() {
+            @Nullable
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                return WVshouldInterceptRequest(main, view, request);
+            }
+
             @Override
             public void onPageFinished(WebView view, String url) {
-                /*Log.e("fdfsqdqfsdfsdq", url);
-                CookieManager.getInstance().setAcceptCookie(true);
-                CookieManager.getInstance().acceptCookie();
-                CookieManager.getInstance().flush();*/
                 view.evaluateJavascript("if(!loaded) {" +
                         "var intev = setInterval(() => {\n" +
                         "            if(!loaded) {\n" +
@@ -194,250 +202,16 @@ public class MainActivity extends AppCompatActivity {
                 super.onPageFinished(view, url);
             }
 
+        });
+        ServiceWorkerControllerCompat swController = ServiceWorkerControllerCompat.getInstance();
+        swController.setServiceWorkerClient(new ServiceWorkerClientCompat() {
             @Override
-            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-                if (request.getUrl() != null && !Adblock.isAGoodUrl(request.getUrl().toString()))
-                    return new WebResourceResponse("text/html", "UTF-8", new ByteArrayInputStream("<p></p>".getBytes()));
-                /*CookieManager.getInstance().setAcceptCookie(true);
-                CookieManager.getInstance().acceptCookie();
-                CookieManager.getInstance().flush();*/
-                String CACHE_APP_SCHEME = "https://mycache/";
-                if (request.getUrl().toString().startsWith(CACHE_APP_SCHEME)) {
-                    String newUrl = request.getUrl().toString().replace(CACHE_APP_SCHEME, "");
-                    try {
-                        File tempFile = new File(main.getCacheDir() + "/" + newUrl);
-                        FileInputStream is = new FileInputStream(tempFile);
-                        String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(MimeTypeMap.getFileExtensionFromUrl(newUrl));
-                        Map<String, String> map = new HashMap<>();
-                        map.put("Access-Control-Allow-Origin", "*");
-                        return new WebResourceResponse(mimeType, "UTF-8", 200, "0K", map, is);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        return super.shouldInterceptRequest(view, request);
-                    }
-                }
-                String DATA_APP_SCHEME = "https://mydata/";
-                if (request.getUrl().toString().startsWith(DATA_APP_SCHEME)) {
-                    String newUrl = request.getUrl().toString().replace(DATA_APP_SCHEME, "");
-                    try {
-                        File tempFile = new File(main.getDataDir() + "/" + newUrl);
-                        FileInputStream is = new FileInputStream(tempFile);
-                        String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(MimeTypeMap.getFileExtensionFromUrl(newUrl));
-                        Map<String, String> map = new HashMap<>();
-                        map.put("Access-Control-Allow-Origin", "*");
-                        return new WebResourceResponse(mimeType, "UTF-8", 200, "0K", map, is);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        return super.shouldInterceptRequest(view, request);
-                    }
-                }
-                String FILES_APP_SCHEME = "https://myfiles/";
-                if (request.getUrl().toString().startsWith(FILES_APP_SCHEME)) {
-                    String newUrl = request.getUrl().toString().replace(FILES_APP_SCHEME, "");
-                    try {
-                        String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(MimeTypeMap.getFileExtensionFromUrl(newUrl));
-                        Collection<String> hashset = new ArrayList<>(Arrays.asList(newUrl.split("\\.")));
-                        hashset.remove(newUrl.split("\\.")[newUrl.split("\\.").length - 1]);
-                        newUrl = TextUtils.join(".", hashset);
-                        //Log.e("sdqfdsqfqs", newUrl);
-                        InputStream is = getContentResolver().openInputStream(Uri.parse(newUrl));
-                        for(Map.Entry<String, String> header : request.getRequestHeaders().entrySet()) {
-                            if(header.getKey().equals("Range")) {
-                                int skip = Integer.parseInt(header.getValue().split("=")[1].split("-")[0]);
-                                //Log.e("dqffqsdfsqfsd", skip + "");
-                                //is.skip(skip);
-                            }
-                        }
-                        //loadedAssets.put(newUrl, total.toString());
-                        Map<String, String> map = new HashMap<>();
-                        map.put("Access-Control-Allow-Origin", "*");
-                        //map.put("Accept-Ranges", "bytes");
-                        //Log.e("sqfsdqfsdqfsdq", String.valueOf(is.available()));
-                        map.put("Access-Control-Allow-Headers", "*");
-                        WebResourceResponse resp = new WebResourceResponse(mimeType, "UTF-8", is);
-                        resp.setResponseHeaders(map);
-                        return resp;
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        return super.shouldInterceptRequest(view, request);
-                    }
-                }
-                String APP_SCHEME = "https://myapp/";
-                if (request.getUrl().toString().startsWith(APP_SCHEME)) {
-                    String newUrl = request.getUrl().toString().replace(APP_SCHEME, "");
-                    try {
-                        AssetManager am = getAssets();
-                        InputStream is = am.open(newUrl);
-                        String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(MimeTypeMap.getFileExtensionFromUrl(newUrl));
-                        //loadedAssets.put(newUrl, total.toString());
-                        return new WebResourceResponse(mimeType, "UTF-8", is);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        return super.shouldInterceptRequest(view, request);
-                    }
-                }
-                if((WebAppInterface.bpWR.contains(request.getUrl().toString()) || request.getUrl().toString().contains("youtube.com") || request.getUrl().toString().contains("google.com") || request.getUrl().toString().contains("spotify.com") || ScriptInjecter.haveScriptForUrl(request.getUrl().toString())) && (request.getMethod().equals("GET") || WebAppInterface.interceptAll.contains(request.getUrl().toString()))) {
-                    try {
-                        //String nhtml = new getData().execute(request.getUrl().toString()).get();
-                        HttpURLConnection connection = (HttpURLConnection) (new URL(request.getUrl().toString())).openConnection();
-                        connection.setConnectTimeout(5000);
-                        connection.setReadTimeout(5000);
-                        connection.setInstanceFollowRedirects(false);
-                        connection.setRequestMethod(request.getMethod());
-                        String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(MimeTypeMap.getFileExtensionFromUrl(request.getUrl().toString()));
-                        if(request.getMethod().toLowerCase().equals("post") && WebAppInterface.postData != null) {
-                            connection.setDoOutput(true);
-                            OutputStream os = connection.getOutputStream();
-                            OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8);
-                            osw.write(WebAppInterface.postData);
-                            osw.flush();
-                            osw.close();
-                            os.close();
-                            WebAppInterface.postData = null;
-                        }
-                        for(Map.Entry<String, String> head : request.getRequestHeaders().entrySet()) {
-                            connection.addRequestProperty(head.getKey(), head.getValue());
-                            //build.addHeader(head.getKey(), head.getValue());
-                        }
-                        String cookieUrl = "https://" + request.getUrl().getHost().replace("www.", "") + "/";
-                        if(CookieManager.getInstance().getCookie(cookieUrl) != null) {
-                            for (String cookie : CookieManager.getInstance().getCookie(cookieUrl).split("; ")) {
-                                connection.addRequestProperty("Cookie", cookie);
-                                //Log.e("fdsfsdfsdfsdfs",  cookieUrl + " " + cookie);
-                            }
-                        }
-                        connection.connect();
-                        if(connection.getResponseCode() >= 300 && connection.getResponseCode() <= 399) {
-                            if(!WebAppInterface.interceptAll.contains(request.getUrl().toString())) return null;
-                            Map<String, String> respH = new HashMap<>();
-                            //for(String h : resp.headers().names()) {
-                            for(Map.Entry<String, List<String>> entries : connection.getHeaderFields().entrySet()) {
-                                String h = entries.getKey();
-                                if(h != null) {
-                                    for (String val : entries.getValue()) {
-                                        if (!h.toLowerCase().equals("x-frame-options") && !h.toLowerCase().equals("content-security-policy-report-only") && !h.toLowerCase().equals("Cross-Origin-Opener-Policy-Report-Only".toLowerCase()) && !h.toLowerCase().equals("Cross-Origin-Resource-Policy".toLowerCase()) && !h.toLowerCase().equals("Permissions-Policy".toLowerCase()) && !h.toLowerCase().equals("Report-To".toLowerCase()) && !h.toLowerCase().equals("Content-Security-Policy".toLowerCase())) {
-                                            String nVal = val;
-                                            if (h.toLowerCase().equals("set-cookie")) {
-                                                if (val.contains("SameSite=lax")) {
-                                                    nVal = val.replace("SameSite=lax", "SameSite=None; Secure; Partitioned");
-                                                } else {
-                                                    nVal = val + "; SameSite=None; Partitioned";
-                                                }
-                                            }
-                                            respH.put(h, nVal);
-                                        }
-                                    }
-                                }
-                            }
-                            Map<String, String> respHrm = new HashMap<>();
-                            for(Map.Entry<String, String> head : respH.entrySet()) {
-                                respHrm.put(head.getKey(), head.getValue());
-                            }
-                            for(Map.Entry<String, String> head : respHrm.entrySet()) {
-                                if(head.getKey().toLowerCase().equals("access-control-allow-origin")) respH.remove(head.getKey(), head.getValue());
-                            }
-                            respH.put("access-control-allow-origin", "*");
-                            String newUrl = respH.get("location") != null ? respH.get("location") : respH.get("Location");
-                            respH.remove("location");
-                            respH.remove("Location");
-                            String content = "<script>location.href = '" + newUrl + "'</script>";
-                            return new WebResourceResponse("text/html", "utf-8", 200, "OK", respH, new ByteArrayInputStream(content.getBytes()));
-                        }
-                        InputStream is = null;
-                        HashMap<String, String> overrides = ScriptInjecter.haveOverrideResponseForRequest(request.getUrl().toString(), connection.getHeaderFields());
-                        if(ScriptInjecter.haveScriptForUrl(request.getUrl().toString()) || overrides != null) {
-                            //String nhtml = resp.body().string();
-                            InputStream in = connection.getInputStream();
-                            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                            byte[] buffer = new byte[1024];
-                            int len;
-                            while ((len = in.read(buffer)) > -1 ) {
-                                baos.write(buffer, 0, len);
-                            }
-                            baos.flush();
-                            InputStream is1 = new ByteArrayInputStream(baos.toByteArray());
-                            InputStream is2 = new ByteArrayInputStream(baos.toByteArray());
-                            BufferedReader reader = new BufferedReader(new InputStreamReader(is2));
-                            StringBuilder html = new StringBuilder();
-                            for (String line; (line = reader.readLine()) != null; ) {
-                                html.append(line + "\n");
-                            }
-                            is2.close();
-                            //
-                            String output = html.toString();
-                            String nhtml = output;
-                            if (overrides != null) {
-                                for(Map.Entry<String, String> entr : overrides.entrySet()) {
-                                    nhtml = nhtml.replace(entr.getKey(), entr.getValue());
-                                }
-                                is = new ByteArrayInputStream(nhtml.getBytes(StandardCharsets.UTF_8));
-                            }
-                            if(nhtml.contains("</body>")) {
-                                for (String s : ScriptInjecter.getScriptsForUrl(request.getUrl().toString())) {
-                                    nhtml = nhtml.replace("</body>", "<script>" +
-                                            "" + s + "; " +
-                                            "console.log(location.href);" +
-                                            "</script></body>");
-                                }
-                                //if(nhtml.contains("<body>")) Log.e("fdsqfsq", nhtml);
-                                is = new ByteArrayInputStream(nhtml.getBytes(StandardCharsets.UTF_8));
-                            }
-                            if(is == null) {
-                                is = is1;
-                            }
-                        }
-                        else {
-                            //is = Objects.requireNonNull(resp.body()).byteStream();
-                            InputStream in = connection.getInputStream();
-                            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                            byte[] buffer = new byte[1024];
-                            int len;
-                            while ((len = in.read(buffer)) > -1 ) {
-                                baos.write(buffer, 0, len);
-                            }
-                            baos.flush();
-                            is = new ByteArrayInputStream(baos.toByteArray());
-                        }
-                        Map<String, String> respH = new HashMap<>();
-                        //for(String h : resp.headers().names()) {
-                        for(Map.Entry<String, List<String>> entries : connection.getHeaderFields().entrySet()) {
-                            String h = entries.getKey();
-                            if(h != null) {
-                                for (String val : entries.getValue()) {
-                                    if (!h.toLowerCase().equals("x-frame-options") && !h.toLowerCase().equals("content-security-policy-report-only") && !h.toLowerCase().equals("Cross-Origin-Opener-Policy-Report-Only".toLowerCase()) && !h.toLowerCase().equals("Cross-Origin-Resource-Policy".toLowerCase()) && !h.toLowerCase().equals("Permissions-Policy".toLowerCase()) && !h.toLowerCase().equals("Report-To".toLowerCase()) && !h.toLowerCase().equals("Content-Security-Policy".toLowerCase())) {
-                                        String nVal = val;
-                                        if (h.toLowerCase().equals("set-cookie")) {
-                                            if (val.contains("SameSite=lax")) {
-                                                nVal = val.replace("SameSite=lax", "SameSite=None; Secure; Partitioned");
-                                            } else {
-                                                nVal = val + "; SameSite=None; Partitioned";
-                                            }
-                                            Log.d(TAG, "shouldInterceptRequest: " + nVal);
-                                        }
-                                        respH.put(h, nVal);
-                                    }
-                                }
-                            }
-                        }
-                        Map<String, String> respHrm = new HashMap<>();
-                        for(Map.Entry<String, String> head : respH.entrySet()) {
-                            respHrm.put(head.getKey(), head.getValue());
-                        }
-                        for(Map.Entry<String, String> head : respHrm.entrySet()) {
-                            if(head.getKey().toLowerCase().equals("access-control-allow-origin")) respH.remove(head.getKey(), head.getValue());
-                        }
-                        respH.put("access-control-allow-origin", "*");
-                        //return new WebResourceResponse(mimeType, "UTF-8", resp.code(), !resp.message().equals("") ? resp.message() : "OK", respH, is);
-                        return new WebResourceResponse(mimeType, "UTF-8", connection.getResponseCode(), connection.getResponseMessage(), respH, is);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        return super.shouldInterceptRequest(view, request);
-                    }
-                }
-                return super.shouldInterceptRequest(view, request);
+            public WebResourceResponse shouldInterceptRequest(@NonNull WebResourceRequest request) {
+                return WVshouldInterceptRequest(main, null, request);
             }
         });
         //load();
+        swController.getServiceWorkerWebSettings().setAllowContentAccess(true);
         WebSettings webViewSettings = webView.getSettings();
         webViewSettings.setJavaScriptCanOpenWindowsAutomatically(false);
         webViewSettings.setJavaScriptEnabled(true);
@@ -533,21 +307,23 @@ public class MainActivity extends AppCompatActivity {
                     };
                     mainHandler.post(myRunnable);
                 }
-                for(Map.Entry<String, String> head : request.getRequestHeaders().entrySet()) {
-                    if(request.getUrl().toString().contains("spotify.com") && head.getKey().toLowerCase().equals("authorization".toLowerCase())) {
-                        Log.e("fdqfsdfsdq", head.getValue());
-                        WebAppInterface.clientsToken.put("Spotify", head.getValue().split("Bearer ")[1]);
-                        Handler mainHandler = new Handler(getMainLooper());
+                if(request.getUrl().toString().contains("spotify.com")) {
+                    for (Map.Entry<String, String> head : request.getRequestHeaders().entrySet()) {
+                        if (head.getKey().toLowerCase().equals("authorization".toLowerCase())) {
+                            Log.e("fdqfsdfsdq", head.getValue());
+                            WebAppInterface.clientsToken.put("Spotify", head.getValue().split("Bearer ")[1]);
+                            Handler mainHandler = new Handler(getMainLooper());
 
-                        Runnable myRunnable = new Runnable() {
-                            @Override
-                            public void run() {
-                                view.stopLoading();
-                                view.loadUrl("about:blank");
-                                view.getSettings().setJavaScriptEnabled(false);
-                            } // This is your code
-                        };
-                        mainHandler.post(myRunnable);
+                            Runnable myRunnable = new Runnable() {
+                                @Override
+                                public void run() {
+                                    view.stopLoading();
+                                    view.loadUrl("about:blank");
+                                    view.getSettings().setJavaScriptEnabled(false);
+                                } // This is your code
+                            };
+                            mainHandler.post(myRunnable);
+                        }
                     }
                 }
                 return super.shouldInterceptRequest(view, request);
@@ -565,20 +341,6 @@ public class MainActivity extends AppCompatActivity {
         webViewSettings2.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36");
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView2,true);
-        amOn = new AudioManager.OnAudioFocusChangeListener() {
-            @Override
-            public void onAudioFocusChange(int i) {
-                Log.e("gfdsgdfgdsgdf", "" + i);
-                if (i == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
-                    // Pause playback
-                } else if (i == AudioManager.AUDIOFOCUS_GAIN) {
-                    // Resume playback
-                    WebAppInterface._mediaSession.getController().getTransportControls().play();
-                } else if (i == AudioManager.AUDIOFOCUS_LOSS) {
-                    // Stop playback
-                }
-            }
-        };
     }
 
     public static void setWindowFlag(Activity activity, final int bits, boolean on) {
@@ -611,57 +373,9 @@ public class MainActivity extends AppCompatActivity {
         super.onNewIntent(intent);
     }
 
-    private Semaphore semaphore = new Semaphore(1);
-
     @Override
     protected void onPause() {
         super.onPause();
-        /*if(MyService.instance != null) {
-            try {
-                semaphore.acquire();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            MainActivity.actualWb.evaluateJavascript("listeners.player.setVolume(0); listeners.player.play();", new ValueCallback<String>() {
-                @Override
-                public void onReceiveValue(String s) {
-                    semaphore.release();
-                }
-            });
-            super.onPause();
-            AudioManager am = (AudioManager) actualWb.getContext().getSystemService(Context.AUDIO_SERVICE);
-            AudioFocusRequest afr = null;
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                afr = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-                        .setAudioAttributes(
-                                new AudioAttributes.Builder()
-                                        .setUsage(AudioAttributes.USAGE_MEDIA)
-                                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                                        .build()
-                        )
-                        .setOnAudioFocusChangeListener(amOn)
-                        .build();
-            }
-            //int aa = am.requestAudioFocus(afr,AudioManager.STREAM_MUSIC,AudioManager.AUDIOFOCUS_GAIN);
-            int aa = 0;
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                aa = am.requestAudioFocus(afr);
-            }
-            else aa = am.requestAudioFocus(null ,AudioManager.STREAM_MUSIC,AudioManager.AUDIOFOCUS_GAIN);
-            if (aa == AudioManager.AUDIOFOCUS_REQUEST_GRANTED && WebAppInterface._mediaSession.getController().getPlaybackState().getState() == PlaybackState.STATE_PLAYING) {
-                WebAppInterface._mediaSession.getController().getTransportControls().play();
-            }
-            MainActivity.actualWb.evaluateJavascript("listeners.player.setVolume(100);", null);
-        }
-        else {
-            super.onPause();
-        }
-        //WebAppInterface._mediaSession.getController().getTransportControls().play();
-        /*MediaWebView.changeVisibility = true;
-        WebView view = findViewById(R.id.wb);
-        view.evaluateJavascript("window.listeners.changeDocumentVisibility(false)", null);
-        view.setVisibility(View.GONE);
-        MediaWebView.changeVisibility = false;*/
     }
 
     private Semaphore semaphore2 = new Semaphore(1);
@@ -685,11 +399,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        /*MediaWebView.changeVisibility = true;
-        WebView view = findViewById(R.id.wb);
-        view.evaluateJavascript("window.listeners.changeDocumentVisibility(true)", null);
-        view.setVisibility(View.VISIBLE);
-        MediaWebView.changeVisibility = false;*/
     }
 
     /**
@@ -714,5 +423,268 @@ public class MainActivity extends AppCompatActivity {
         } catch (Throwable e) {
             //ignore
         }
+    }
+
+    private WebResourceResponse WVshouldInterceptRequest(MainActivity main, WebView view, WebResourceRequest request) {
+        if (request.getUrl() != null && !Adblock.isAGoodUrl(request.getUrl().toString()))
+            return new WebResourceResponse("text/html", "UTF-8", new ByteArrayInputStream("<p></p>".getBytes()));
+        String urlrewrite = request.getUrl().toString();
+                /*CookieManager.getInstance().setAcceptCookie(true);
+                CookieManager.getInstance().acceptCookie();
+                CookieManager.getInstance().flush();*/
+        String CACHE_APP_SCHEME = "https://mycache/";
+        if (urlrewrite.startsWith(CACHE_APP_SCHEME)) {
+            String newUrl = urlrewrite.replace(CACHE_APP_SCHEME, "");
+            try {
+                File tempFile = new File(main.getCacheDir() + "/" + newUrl);
+                FileInputStream is = new FileInputStream(tempFile);
+                String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(MimeTypeMap.getFileExtensionFromUrl(newUrl));
+                Map<String, String> map = new HashMap<>();
+                map.put("Access-Control-Allow-Origin", "*");
+                return new WebResourceResponse(mimeType, "UTF-8", 200, "0K", map, is);
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            }
+        }
+        String DATA_APP_SCHEME = "https://mydata/";
+        if (urlrewrite.startsWith(DATA_APP_SCHEME)) {
+            String newUrl = urlrewrite.replace(DATA_APP_SCHEME, "");
+            try {
+                File tempFile = new File(main.getDataDir() + "/" + newUrl);
+                FileInputStream is = new FileInputStream(tempFile);
+                String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(MimeTypeMap.getFileExtensionFromUrl(newUrl));
+                Map<String, String> map = new HashMap<>();
+                map.put("Access-Control-Allow-Origin", "*");
+                return new WebResourceResponse(mimeType, "UTF-8", 200, "0K", map, is);
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            }
+        }
+        String FILES_APP_SCHEME = "https://myfiles/";
+        if (urlrewrite.startsWith(FILES_APP_SCHEME)) {
+            String newUrl = urlrewrite.replace(FILES_APP_SCHEME, "");
+            try {
+                String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(MimeTypeMap.getFileExtensionFromUrl(newUrl));
+                Collection<String> hashset = new ArrayList<>(Arrays.asList(newUrl.split("\\.")));
+                hashset.remove(newUrl.split("\\.")[newUrl.split("\\.").length - 1]);
+                newUrl = TextUtils.join(".", hashset);
+                //Log.e("sdqfdsqfqs", newUrl);
+                InputStream is = getContentResolver().openInputStream(Uri.parse(newUrl));
+                for(Map.Entry<String, String> header : request.getRequestHeaders().entrySet()) {
+                    if(header.getKey().equals("Range")) {
+                        int skip = Integer.parseInt(header.getValue().split("=")[1].split("-")[0]);
+                        //Log.e("dqffqsdfsqfsd", skip + "");
+                        //is.skip(skip);
+                    }
+                }
+                //loadedAssets.put(newUrl, total.toString());
+                Map<String, String> map = new HashMap<>();
+                map.put("Access-Control-Allow-Origin", "*");
+                //map.put("Accept-Ranges", "bytes");
+                //Log.e("sqfsdqfsdqfsdq", String.valueOf(is.available()));
+                map.put("Access-Control-Allow-Headers", "*");
+                WebResourceResponse resp = new WebResourceResponse(mimeType, "UTF-8", is);
+                resp.setResponseHeaders(map);
+                return resp;
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            }
+        }
+        String APP_SCHEME = "https://myapp/";
+        if (urlrewrite.startsWith(APP_SCHEME)) {
+            String newUrl = urlrewrite.replace(APP_SCHEME, "");
+            try {
+                AssetManager am = getAssets();
+                InputStream is = am.open(newUrl);
+                String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(MimeTypeMap.getFileExtensionFromUrl(newUrl));
+                //loadedAssets.put(newUrl, total.toString());
+                return new WebResourceResponse(mimeType, "UTF-8", is);
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            }
+        }
+        if(ScriptInjecter.haveBypassRequest(urlrewrite) || ((urlrewrite.contains("youtube.com") || urlrewrite.contains("google.com") || urlrewrite.contains("spotify.com") || ScriptInjecter.haveScriptForUrl(urlrewrite)) && (request.getMethod().equals("GET") || WebAppInterface.interceptAll.contains(urlrewrite)))) {
+            try {
+                //String nhtml = new getData().execute(urlrewrite).get();
+                HttpURLConnection connection = (HttpURLConnection) (new URL(urlrewrite)).openConnection();
+                connection.setConnectTimeout(5000);
+                connection.setReadTimeout(5000);
+                connection.setInstanceFollowRedirects(false);
+                connection.setRequestMethod(request.getMethod());
+                String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(MimeTypeMap.getFileExtensionFromUrl(urlrewrite));
+                if(request.getMethod().toLowerCase().equals("post") && WebAppInterface.postData != null) {
+                    connection.setDoOutput(true);
+                    OutputStream os = connection.getOutputStream();
+                    OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8);
+                    osw.write(WebAppInterface.postData);
+                    osw.flush();
+                    osw.close();
+                    os.close();
+                    WebAppInterface.postData = null;
+                }
+                for(Map.Entry<String, String> head : request.getRequestHeaders().entrySet()) {
+                    connection.addRequestProperty(head.getKey(), head.getValue());
+                    //build.addHeader(head.getKey(), head.getValue());
+                }
+                if(view == null) {
+                    connection.setRequestProperty("user-agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36");
+                }
+                String cookieUrl = "https://" + request.getUrl().getHost().replace("www.", "") + "/";
+                if(CookieManager.getInstance().getCookie(urlrewrite) != null) {
+                    connection.setRequestProperty("Cookie", CookieManager.getInstance().getCookie(urlrewrite));
+                }
+                connection.connect();
+                if(connection.getResponseCode() >= 300 && connection.getResponseCode() <= 399) {
+                    if(!WebAppInterface.interceptAll.contains(urlrewrite)) return null;
+                    Map<String, String> respH = new HashMap<>();
+                    //for(String h : resp.headers().names()) {
+                    boolean newCookies = false;
+                    for(Map.Entry<String, List<String>> entries : connection.getHeaderFields().entrySet()) {
+                        String h = entries.getKey();
+                        if(h != null) {
+                            for (String val : entries.getValue()) {
+                                if (!h.toLowerCase().equals("x-frame-options") && !h.toLowerCase().equals("content-security-policy-report-only") && !h.toLowerCase().equals("Cross-Origin-Opener-Policy-Report-Only".toLowerCase()) && !h.toLowerCase().equals("Cross-Origin-Resource-Policy".toLowerCase()) && !h.toLowerCase().equals("Permissions-Policy".toLowerCase()) && !h.toLowerCase().equals("Report-To".toLowerCase()) && !h.toLowerCase().equals("Content-Security-Policy".toLowerCase())) {
+                                    String nVal = val;
+                                    if (h.toLowerCase().equals("set-cookie")) {
+                                        if (val.contains("SameSite=lax")) {
+                                            nVal = val.replace("SameSite=lax", "SameSite=None; Secure; Partitioned");
+                                        } else {
+                                            nVal = val + "; SameSite=None; Partitioned";
+                                        }
+                                    }
+                                    if(view == null) {
+                                        newCookies = true;
+                                        CookieManager.getInstance().setCookie(urlrewrite, nVal);
+                                    }
+                                    respH.put(h, nVal);
+                                }
+                            }
+                        }
+                        if(view == null && newCookies) {
+                            CookieManager.getInstance().setAcceptCookie(true);
+                            CookieManager.getInstance().acceptCookie();
+                            CookieManager.getInstance().flush();
+                        }
+                    }
+                    Map<String, String> respHrm = new HashMap<>();
+                    for(Map.Entry<String, String> head : respH.entrySet()) {
+                        respHrm.put(head.getKey(), head.getValue());
+                    }
+                    for(Map.Entry<String, String> head : respHrm.entrySet()) {
+                        if(head.getKey().toLowerCase().equals("access-control-allow-origin")) respH.remove(head.getKey(), head.getValue());
+                    }
+                    respH.put("access-control-allow-origin", "*");
+                    String newUrl = respH.get("location") != null ? respH.get("location") : respH.get("Location");
+                    respH.remove("location");
+                    respH.remove("Location");
+                    String content = "<html><head></head><body><script>location.href = '" + newUrl + "'</script></body></html>";
+                    return new WebResourceResponse("text/html", "utf-8", 200, "OK", respH, new ByteArrayInputStream(content.getBytes()));
+                }
+                InputStream is = null;
+                HashMap<String, String> overrides = ScriptInjecter.haveOverrideResponseForRequest(urlrewrite, connection.getHeaderFields());
+                if(ScriptInjecter.haveScriptForUrl(urlrewrite) || overrides != null) {
+                    //String nhtml = resp.body().string();
+                    InputStream in = connection.getInputStream();
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    byte[] buffer = new byte[1024];
+                    int len;
+                    while ((len = in.read(buffer)) > -1 ) {
+                        baos.write(buffer, 0, len);
+                    }
+                    baos.flush();
+                    InputStream is1 = new ByteArrayInputStream(baos.toByteArray());
+                    InputStream is2 = new ByteArrayInputStream(baos.toByteArray());
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(is2));
+                    StringBuilder html = new StringBuilder();
+                    for (String line; (line = reader.readLine()) != null; ) {
+                        html.append(line + "\n");
+                    }
+                    is2.close();
+                    //
+                    String output = html.toString();
+                    String nhtml = output;
+                    if (overrides != null) {
+                        for(Map.Entry<String, String> entr : overrides.entrySet()) {
+                            nhtml = nhtml.replace(entr.getKey(), entr.getValue());
+                        }
+                        is = new ByteArrayInputStream(nhtml.getBytes(StandardCharsets.UTF_8));
+                    }
+                    if(nhtml.contains("</body>")) {
+                        for (String s : ScriptInjecter.getScriptsForUrl(urlrewrite)) {
+                            nhtml = nhtml.replace("</body>", "<script>" +
+                                    "" + s + "; " +
+                                    "console.log(location.href);" +
+                                    "</script></body>");
+                        }
+                        //if(nhtml.contains("<body>")) Log.e("fdsqfsq", nhtml);
+                        is = new ByteArrayInputStream(nhtml.getBytes(StandardCharsets.UTF_8));
+                    }
+                    if(is == null) {
+                        is = is1;
+                    }
+                }
+                else {
+                    //is = Objects.requireNonNull(resp.body()).byteStream();
+                    InputStream in = connection.getInputStream();
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    byte[] buffer = new byte[1024];
+                    int len;
+                    while ((len = in.read(buffer)) > -1 ) {
+                        baos.write(buffer, 0, len);
+                    }
+                    baos.flush();
+                    is = new ByteArrayInputStream(baos.toByteArray());
+                }
+                Map<String, String> respH = new HashMap<>();
+                //for(String h : resp.headers().names()) {
+                boolean newCookies = false;
+                for(Map.Entry<String, List<String>> entries : connection.getHeaderFields().entrySet()) {
+                    String h = entries.getKey();
+                    if(h != null) {
+                        for (String val : entries.getValue()) {
+                            if (!h.toLowerCase().equals("x-frame-options") && !h.toLowerCase().equals("content-security-policy-report-only") && !h.toLowerCase().equals("Cross-Origin-Opener-Policy-Report-Only".toLowerCase()) && !h.toLowerCase().equals("Cross-Origin-Resource-Policy".toLowerCase()) && !h.toLowerCase().equals("Permissions-Policy".toLowerCase()) && !h.toLowerCase().equals("Report-To".toLowerCase()) && !h.toLowerCase().equals("Content-Security-Policy".toLowerCase())) {
+                                String nVal = val;
+                                if (h.toLowerCase().equals("set-cookie")) {
+                                    if (val.contains("SameSite=lax")) {
+                                        nVal = val.replace("SameSite=lax", "SameSite=None; Secure; Partitioned");
+                                    } else {
+                                        nVal = val + "; SameSite=None; Partitioned";
+                                    }
+                                    Log.d(TAG, "shouldInterceptRequest: " + nVal);
+                                    if(view == null) {
+                                        newCookies = true;
+                                        CookieManager.getInstance().setCookie(urlrewrite, nVal);
+                                    }
+                                }
+                                respH.put(h, nVal);
+                            }
+                        }
+                    }
+                    if(view == null && newCookies) {
+                        CookieManager.getInstance().setAcceptCookie(true);
+                        CookieManager.getInstance().acceptCookie();
+                        CookieManager.getInstance().flush();
+                    }
+                }
+                Map<String, String> respHrm = new HashMap<>();
+                for(Map.Entry<String, String> head : respH.entrySet()) {
+                    respHrm.put(head.getKey(), head.getValue());
+                }
+                for(Map.Entry<String, String> head : respHrm.entrySet()) {
+                    if(head.getKey().toLowerCase().equals("access-control-allow-origin")) respH.remove(head.getKey(), head.getValue());
+                }
+                respH.put("access-control-allow-origin", "*");
+                //return new WebResourceResponse(mimeType, "UTF-8", resp.code(), !resp.message().equals("") ? resp.message() : "OK", respH, is);
+                return new WebResourceResponse(mimeType, "UTF-8", connection.getResponseCode(), connection.getResponseMessage(), respH, is);
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            }
+        }
+        return null;
     }
 }

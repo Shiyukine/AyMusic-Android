@@ -41,6 +41,7 @@ public class ScriptInjecter {
                     for (JSONObject oToRem : toRemove) {
                         overList.remove(oToRem);
                     }
+                    WebAppInterface.bpWR.put(urlInfo.getString("url"), urlInfo.getBoolean("includes"));
                     overList.add(obj);
                     break;
                 }
@@ -105,5 +106,17 @@ public class ScriptInjecter {
             if(url.contains(u.getKey())) strs.add(u.getValue().replace("'app://root'", "'https://myapp'"));
         }
         return strs;
+    }
+
+    public static boolean haveBypassRequest(String url) {
+        for(Map.Entry<String, Boolean> u : WebAppInterface.bpWR.entrySet()) {
+            if(u.getValue()) {
+                if(url.contains(u.getKey())) return true;
+            }
+            else {
+                if(url.equals(u.getKey())) return true;
+            }
+        }
+        return false;
     }
 }
