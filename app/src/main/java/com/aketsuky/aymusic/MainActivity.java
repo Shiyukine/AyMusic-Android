@@ -395,6 +395,8 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         super.onDestroy();
+        //force stop
+        System.exit(0);
     }
 
     @Override
