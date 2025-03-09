@@ -89,7 +89,9 @@ public class ScriptInjecter {
     public static boolean haveScriptForUrl(String url) {
         try {
             for (Map.Entry<String, String> u : map.entrySet()) {
-                if (url.contains(u.getKey())) return true;
+                String urlEncoded = URLEncoder.encode(URLDecoder.decode(url, StandardCharsets.UTF_8.toString()), StandardCharsets.UTF_8.toString());
+                String urlEncoded2 = URLEncoder.encode(URLDecoder.decode(u.getKey(), StandardCharsets.UTF_8.toString()), StandardCharsets.UTF_8.toString());
+                if (urlEncoded.contains(urlEncoded2)) return true;
             }
             return false;
         }
