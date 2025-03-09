@@ -7,6 +7,10 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -95,10 +99,12 @@ public class ScriptInjecter {
         }
     }
 
-    public static List<String> getScriptsForUrl(String url) {
+    public static List<String> getScriptsForUrl(String url) throws UnsupportedEncodingException {
         List<String> strs = new ArrayList<>();
         for(Map.Entry<String, String> u : map.entrySet()) {
-            if(url.contains(u.getKey())) strs.add(u.getValue().replace("'app://root'", "'https://myapp'"));
+            String urlEncoded = URLEncoder.encode(URLDecoder.decode(url, StandardCharsets.UTF_8.toString()), StandardCharsets.UTF_8.toString());
+            String urlEncoded2 = URLEncoder.encode(URLDecoder.decode(u.getKey(), StandardCharsets.UTF_8.toString()), StandardCharsets.UTF_8.toString());
+            if(urlEncoded.contains(urlEncoded2)) strs.add(u.getValue().replace("'app://root'", "'https://myapp'"));
         }
         return strs;
     }
