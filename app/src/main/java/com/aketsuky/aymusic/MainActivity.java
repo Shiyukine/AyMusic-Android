@@ -185,6 +185,8 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onPageFinished(WebView view, String url) {
+                Log.e("gfgssdgfdsgd", "sgfdsgdfgds " + url);
+                ScriptInjecter.overList.clear();
                 view.evaluateJavascript("if(!loaded) {" +
                         "var intev = setInterval(() => {\n" +
                         "            if(!loaded) {\n" +
