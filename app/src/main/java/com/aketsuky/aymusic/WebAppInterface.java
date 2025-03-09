@@ -53,6 +53,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class WebAppInterface {
     Context mContext;
@@ -201,9 +202,20 @@ public class WebAppInterface {
 
             @Override
             public boolean onMediaButtonEvent(final Intent mediaButtonIntent) {
-                Log.d("aa", "GOT MediaButton EVENT");
                 KeyEvent keyEvent = (KeyEvent) mediaButtonIntent.getExtras().get(Intent.EXTRA_KEY_EVENT);
-                // ...do something with keyEvent, super... does nothing.
+                assert keyEvent != null;
+                Log.d("aa", "GOT MediaButton EVENT " + keyEvent.getKeyCode() + " action: " + keyEvent.getAction());
+                if(keyEvent.getAction() == KeyEvent.ACTION_UP) {
+                    if (keyEvent.getKeyCode() == KeyEvent.KEYCODE_MEDIA_PLAY ||
+                            keyEvent.getKeyCode() == KeyEvent.KEYCODE_MEDIA_PAUSE ||
+                            keyEvent.getKeyCode() == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE) {
+                        if (Objects.requireNonNull(_mediaSession.getController().getPlaybackState()).getState() == PlaybackState.STATE_PLAYING) {
+                            view.evaluateJavascript("listeners.player.pause()", null);
+                        } else {
+                            view.evaluateJavascript("listeners.player.play()", null);
+                        }
+                    }
+                }
                 return super.onMediaButtonEvent(mediaButtonIntent);
             }
 
