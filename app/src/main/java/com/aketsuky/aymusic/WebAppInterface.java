@@ -344,7 +344,7 @@ public class WebAppInterface {
                 return nhtml;*/
             } catch (Exception e) {
                 e.printStackTrace();
-                //return null;
+                view.evaluateJavascript("window.listeners.httpRequestCallback('')", null);
             }
         }
         else {

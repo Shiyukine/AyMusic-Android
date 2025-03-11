@@ -88,10 +88,13 @@ public class ScriptInjecter {
 
     public static boolean haveScriptForUrl(String url) {
         try {
+            String charset = StandardCharsets.UTF_8.toString();
+            String urlEncoded = URLEncoder.encode(URLDecoder.decode(url, charset), charset);
             for (Map.Entry<String, String> u : map.entrySet()) {
-                String urlEncoded = URLEncoder.encode(URLDecoder.decode(url, StandardCharsets.UTF_8.toString()), StandardCharsets.UTF_8.toString());
-                String urlEncoded2 = URLEncoder.encode(URLDecoder.decode(u.getKey(), StandardCharsets.UTF_8.toString()), StandardCharsets.UTF_8.toString());
-                if (urlEncoded.contains(urlEncoded2)) return true;
+                String urlEncoded2 = URLEncoder.encode(URLDecoder.decode(u.getKey(), charset), charset);
+                if (urlEncoded.contains(urlEncoded2)) {
+                    return true;
+                }
             }
             return false;
         }
@@ -103,10 +106,13 @@ public class ScriptInjecter {
 
     public static List<String> getScriptsForUrl(String url) throws UnsupportedEncodingException {
         List<String> strs = new ArrayList<>();
+        String charset = StandardCharsets.UTF_8.toString();
+        String urlEncoded = URLEncoder.encode(URLDecoder.decode(url, charset), charset);
         for(Map.Entry<String, String> u : map.entrySet()) {
-            String urlEncoded = URLEncoder.encode(URLDecoder.decode(url, StandardCharsets.UTF_8.toString()), StandardCharsets.UTF_8.toString());
-            String urlEncoded2 = URLEncoder.encode(URLDecoder.decode(u.getKey(), StandardCharsets.UTF_8.toString()), StandardCharsets.UTF_8.toString());
-            if(urlEncoded.contains(urlEncoded2)) strs.add(u.getValue().replace("'app://root'", "'https://myapp'"));
+            String urlEncoded2 = URLEncoder.encode(URLDecoder.decode(u.getKey(), charset), charset);
+            if(urlEncoded.contains(urlEncoded2)) {
+                strs.add(u.getValue().replace("'app://root'", "'https://myapp'"));
+            }
         }
         return strs;
     }

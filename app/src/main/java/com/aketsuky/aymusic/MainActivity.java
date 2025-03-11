@@ -60,6 +60,7 @@ import java.lang.reflect.Method;
 import java.net.HttpCookie;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.SocketException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -685,7 +686,13 @@ public class MainActivity extends AppCompatActivity {
                 respH.put("access-control-allow-origin", "*");
                 //return new WebResourceResponse(mimeType, "UTF-8", resp.code(), !resp.message().equals("") ? resp.message() : "OK", respH, is);
                 return new WebResourceResponse(mimeType, "UTF-8", connection.getResponseCode(), connection.getResponseMessage(), respH, is);
-            } catch (Exception e) {
+            }
+            catch (SocketException e) {
+                e.printStackTrace();
+                Log.e("shouldInterceptRequest", "retrying");
+                return WVshouldInterceptRequest(main, view, request);
+            }
+            catch (Exception e) {
                 e.printStackTrace();
                 return null;
             }

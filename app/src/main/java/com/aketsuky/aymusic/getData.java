@@ -1,10 +1,12 @@
 package com.aketsuky.aymusic;
 
 import android.os.AsyncTask;
+import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.SocketException;
 import java.net.URL;
 import java.net.URLConnection;
 
@@ -29,6 +31,10 @@ public class getData extends AsyncTask<String, Void, String> {
             //
             String output = html.toString()/*.replace("\\u003C", "<")*/;
             return output;
+        } catch (SocketException e) {
+            e.printStackTrace();
+            Log.e("getData", "retrying");
+            return doInBackground(urls);
         } catch (Exception e) {
             e.printStackTrace();
             return "";
