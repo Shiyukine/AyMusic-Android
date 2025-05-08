@@ -128,4 +128,16 @@ public class ScriptInjecter {
         }
         return false;
     }
+
+    public static boolean haveInterceptAllWebRequest(String url) {
+        for(Map.Entry<String, Boolean> u : WebAppInterface.interceptAll.entrySet()) {
+            if(u.getValue()) {
+                if(url.contains(u.getKey())) return true;
+            }
+            else {
+                if(url.equals(u.getKey())) return true;
+            }
+        }
+        return false;
+    }
 }

@@ -81,6 +81,7 @@ public class WebAppInterface {
             _mediaSession.setMediaButtonBroadcastReceiver(eventReceiver);
         }
         final boolean[] isPlaying = {false};
+        final boolean[] debouncePause = {false};
         _mediaSession.setCallback(new MediaSession.Callback() {
             @Override
             public void onPlay() {
@@ -151,7 +152,10 @@ public class WebAppInterface {
                 Runnable myRunnable = new Runnable() {
                     @Override
                     public void run() {
-                        view.evaluateJavascript("listeners.player.pause()", null);
+                        if(!debouncePause[0]) {
+                            view.evaluateJavascript("listeners.player.pause()", null);
+                        }
+                        debouncePause[0] = false;
                     } // This is your code
                 };
                 mainHandler.post(myRunnable);
@@ -205,13 +209,14 @@ public class WebAppInterface {
                 KeyEvent keyEvent = (KeyEvent) mediaButtonIntent.getExtras().get(Intent.EXTRA_KEY_EVENT);
                 assert keyEvent != null;
                 Log.d("aa", "GOT MediaButton EVENT " + keyEvent.getKeyCode() + " action: " + keyEvent.getAction());
-                if(keyEvent.getAction() == KeyEvent.ACTION_UP) {
+                if(keyEvent.getAction() == KeyEvent.ACTION_DOWN) {
                     if (keyEvent.getKeyCode() == KeyEvent.KEYCODE_MEDIA_PLAY ||
                             keyEvent.getKeyCode() == KeyEvent.KEYCODE_MEDIA_PAUSE ||
                             keyEvent.getKeyCode() == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE) {
-                        if (Objects.requireNonNull(_mediaSession.getController().getPlaybackState()).getState() == PlaybackState.STATE_PLAYING) {
+                        if (_mediaSession.getController().getPlaybackState().getState() == PlaybackState.STATE_PLAYING) {
                             view.evaluateJavascript("listeners.player.pause()", null);
                         } else {
+                            debouncePause[0] = true;
                             view.evaluateJavascript("listeners.player.play()", null);
                         }
                     }
@@ -537,11 +542,17 @@ public class WebAppInterface {
         else if(!bpWR.containsKey(url)) bpWR.put(url, true);
     }
 
-    public static ArrayList<String> interceptAll = new ArrayList<>();
+    public static HashMap<String, Boolean> interceptAll = new HashMap<>();
 
     @JavascriptInterface
     public void addInterceptAllWebRequest(String url) {
-        if(!interceptAll.contains(url)) interceptAll.add(url);
+        if(!interceptAll.containsKey(url)) interceptAll.put(url, false);
+    }
+
+    @JavascriptInterface
+    public void addInterceptAllWebRequest(String url, boolean includes) {
+        if(!includes) addInterceptAllWebRequest(url);
+        else if(!interceptAll.containsKey(url)) interceptAll.put(url, true);
     }
 
     @JavascriptInterface

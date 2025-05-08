@@ -71,6 +71,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Semaphore;
 
 import static android.content.ContentValues.TAG;
@@ -513,7 +514,7 @@ public class MainActivity extends AppCompatActivity {
                 return null;
             }
         }
-        if(ScriptInjecter.haveBypassRequest(urlrewrite) || ((urlrewrite.contains("youtube.com") || urlrewrite.contains("google.com") || urlrewrite.contains("spotify.com") || ScriptInjecter.haveScriptForUrl(urlrewrite)) && (request.getMethod().equals("GET") || WebAppInterface.interceptAll.contains(urlrewrite)))) {
+        if(ScriptInjecter.haveBypassRequest(urlrewrite) || ((urlrewrite.contains("youtube.com") || urlrewrite.contains("google.com") || urlrewrite.contains("spotify.com") || ScriptInjecter.haveScriptForUrl(urlrewrite)) && (request.getMethod().equals("GET") || ScriptInjecter.haveInterceptAllWebRequest(urlrewrite)))) {
             try {
                 //String nhtml = new getData().execute(urlrewrite).get();
                 HttpURLConnection connection = (HttpURLConnection) (new URL(urlrewrite)).openConnection();
@@ -545,7 +546,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 connection.connect();
                 if(connection.getResponseCode() >= 300 && connection.getResponseCode() <= 399) {
-                    if(!WebAppInterface.interceptAll.contains(urlrewrite)) return null;
+                    if(!ScriptInjecter.haveInterceptAllWebRequest(urlrewrite)) return null;
                     Map<String, String> respH = new HashMap<>();
                     //for(String h : resp.headers().names()) {
                     boolean newCookies = false;
@@ -576,17 +577,20 @@ public class MainActivity extends AppCompatActivity {
                             CookieManager.getInstance().flush();
                         }
                     }
-                    Map<String, String> respHrm = new HashMap<>();
-                    for(Map.Entry<String, String> head : respH.entrySet()) {
-                        respHrm.put(head.getKey(), head.getValue());
-                    }
+                    Map<String, String> respHrm = new HashMap<>(respH);
                     for(Map.Entry<String, String> head : respHrm.entrySet()) {
-                        if(head.getKey().toLowerCase().equals("access-control-allow-origin")) respH.remove(head.getKey(), head.getValue());
+                        if(head.getKey().equalsIgnoreCase("access-control-allow-origin") ||
+                                head.getKey().equalsIgnoreCase("Access-Control-Allow-Credentials")) respH.remove(head.getKey(), head.getValue());
                     }
-                    respH.put("access-control-allow-origin", "*");
+                    String origin = request.getRequestHeaders().getOrDefault("origin", "*");
+                    if(request.getRequestHeaders().containsKey("Origin")) origin = request.getRequestHeaders().get("Origin");
+                    if(Objects.equals(origin, "")) origin = "*";
+                    respH.put("access-control-allow-origin", origin);
+                    respH.put("access-control-allow-credentials", "true");
                     String newUrl = respH.get("location") != null ? respH.get("location") : respH.get("Location");
                     respH.remove("location");
                     respH.remove("Location");
+                    respH.put("X-Location-Manual", newUrl);
                     String content = "<html><head></head><body><script>location.href = '" + newUrl + "'</script></body></html>";
                     return new WebResourceResponse("text/html", "utf-8", 200, "OK", respH, new ByteArrayInputStream(content.getBytes()));
                 }
