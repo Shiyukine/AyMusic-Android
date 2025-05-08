@@ -64,7 +64,7 @@ public class WebAppInterface {
     public static String postData = null;
     final String MEDIA_SESSION_TAG = "AyMusic";
     String channelId = "AyMusicPlayer";
-    MediaButtonIntentReceiver receiver;
+    //MediaButtonIntentReceiver receiver;
     boolean itsMe = false;
     public static boolean registered = false;
 
@@ -76,10 +76,10 @@ public class WebAppInterface {
         _mediaSession.setFlags(MediaSession.FLAG_HANDLES_MEDIA_BUTTONS |
                 MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS);
         _mediaSession.setActive(true);
-        ComponentName eventReceiver = new ComponentName(mContext.getPackageName(), MediaButtonIntentReceiver.class.getName());
+        /*ComponentName eventReceiver = new ComponentName(mContext.getPackageName(), MainActivity.MediaButtonIntentReceiver.class.getName());
         if (Build.VERSION.SDK_INT >= 31) {
             _mediaSession.setMediaButtonBroadcastReceiver(eventReceiver);
-        }
+        }*/
         final boolean[] isPlaying = {false};
         final boolean[] debouncePause = {false};
         _mediaSession.setCallback(new MediaSession.Callback() {
@@ -214,10 +214,10 @@ public class WebAppInterface {
                             keyEvent.getKeyCode() == KeyEvent.KEYCODE_MEDIA_PAUSE ||
                             keyEvent.getKeyCode() == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE) {
                         if (_mediaSession.getController().getPlaybackState().getState() == PlaybackState.STATE_PLAYING) {
-                            view.evaluateJavascript("listeners.player.pause()", null);
+                            WebAppInterface._mediaSession.getController().getTransportControls().pause();
                         } else {
                             debouncePause[0] = true;
-                            view.evaluateJavascript("listeners.player.play()", null);
+                            WebAppInterface._mediaSession.getController().getTransportControls().play();
                         }
                     }
                 }
@@ -238,8 +238,8 @@ public class WebAppInterface {
                 //mediaNotify();
             }
         });
-        receiver = new MediaButtonIntentReceiver();
-        receiver.setWb(wv);
+        MediaButtonIntentReceiverNotification receiver = new MediaButtonIntentReceiverNotification();
+        //receiver.setWb(wv);
         ContextCompat.registerReceiver(mContext, receiver, new IntentFilter("mediaPause"), ContextCompat.RECEIVER_NOT_EXPORTED);
         ContextCompat.registerReceiver(mContext, receiver, new IntentFilter("mediaPlay"), ContextCompat.RECEIVER_NOT_EXPORTED);
         ContextCompat.registerReceiver(mContext, receiver, new IntentFilter("mediaNext"), ContextCompat.RECEIVER_NOT_EXPORTED);

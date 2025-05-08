@@ -3,19 +3,11 @@ package com.aketsuky.aymusic;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.util.Log;
-import android.webkit.WebView;
 
-public class MediaButtonIntentReceiver extends BroadcastReceiver {
+public class MediaButtonIntentReceiverNotification extends BroadcastReceiver {
 
-    public MediaButtonIntentReceiver() {
+    public MediaButtonIntentReceiverNotification() {
 
-    }
-
-    WebView wb;
-
-    public void setWb(WebView wb) {
-        this.wb = wb;
     }
 
     @Override

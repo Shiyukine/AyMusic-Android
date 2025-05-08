@@ -14,6 +14,7 @@ import androidx.webkit.ServiceWorkerControllerCompat;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -31,6 +32,7 @@ import android.os.Handler;
 import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -45,6 +47,7 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -77,6 +80,24 @@ import java.util.concurrent.Semaphore;
 import static android.content.ContentValues.TAG;
 
 public class MainActivity extends AppCompatActivity {
+
+    public static class MediaButtonIntentReceiver extends BroadcastReceiver {
+
+        public MediaButtonIntentReceiver() {
+            super ();
+        }
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String intentAction = intent.getAction();
+            Log.e("fdssgdsfg", intentAction);
+            if (!Intent.ACTION_MEDIA_BUTTON.equals(intentAction)) {
+                Log.i ("fdssgdsfg", "no media button information");
+                return;
+            }
+            WebAppInterface._mediaSession.getController().getTransportControls().play();
+        }
+    }
 
     Map<String, String> loadedAssets = new HashMap<>();
     static MediaWebView actualWb;
@@ -111,6 +132,9 @@ public class MainActivity extends AppCompatActivity {
         } else {
             registerReceiver(mNoisyReceiver, filter);
         }
+        AudioManager mAudioManager =  (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        ComponentName mReceiverComponent = new ComponentName(this,MediaButtonIntentReceiver.class);
+        mAudioManager.registerMediaButtonEventReceiver(mReceiverComponent);
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
             actionBar.hide();

@@ -33,7 +33,7 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/provider_paths" />
         </provider>
-        <receiver android:name=".MediaButtonIntentReceiver"
+        <receiver android:name=".MediaButtonIntentReceiverNotification"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MEDIA_BUTTON" />
@@ -62,6 +62,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <receiver android:name=".MainActivity$MediaButtonIntentReceiver"
+            android:exported="true"
+            android:enabled="true">
+            <intent-filter
+                android:priority="10000">
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>
