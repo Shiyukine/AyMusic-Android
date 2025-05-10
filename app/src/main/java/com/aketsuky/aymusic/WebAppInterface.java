@@ -17,6 +17,7 @@ import android.media.AudioAttributes;
 import android.media.AudioFocusRequest;
 import android.media.AudioManager;
 import android.media.MediaMetadata;
+import android.media.MediaPlayer;
 import android.media.session.MediaSession;
 import android.media.session.PlaybackState;
 import android.net.Uri;
@@ -29,9 +30,13 @@ import android.webkit.CookieManager;
 import android.webkit.CookieSyncManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
+import android.widget.Toast;
 
 import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
+import androidx.webkit.WebViewCompat;
+import androidx.webkit.WebViewFeature;
+import androidx.webkit.WebViewStartUpConfig;
 
 import org.json.JSONException;
 
@@ -75,11 +80,44 @@ public class WebAppInterface {
         _mediaSession = new MediaSession(c, MEDIA_SESSION_TAG);
         _mediaSession.setFlags(MediaSession.FLAG_HANDLES_MEDIA_BUTTONS |
                 MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS);
-        _mediaSession.setActive(true);
-        /*ComponentName eventReceiver = new ComponentName(mContext.getPackageName(), MainActivity.MediaButtonIntentReceiver.class.getName());
+        AudioManager am = (AudioManager)mContext.getSystemService(Context.AUDIO_SERVICE);
+        AudioFocusRequest afr = null;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            afr = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                    .setAudioAttributes(
+                            new AudioAttributes.Builder()
+                                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                                    .build()
+                    )
+                    .build();
+            int aa = am.requestAudioFocus(afr);
+            if (aa == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+                _mediaSession.setActive(true);
+            }
+        }
+        else {
+            AudioManager audioManager = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
+            AudioManager.OnAudioFocusChangeListener afChangeListener = new AudioManager.OnAudioFocusChangeListener() {
+                @Override
+                public void onAudioFocusChange(int i) {
+                    Log.e("gfdsgdfgdsgdf", "" + i);
+                }
+            };
+            int result = audioManager.requestAudioFocus(afChangeListener,
+                    // Use the music stream.
+                    AudioManager.STREAM_MUSIC,
+                    // Request permanent focus.
+                    AudioManager.AUDIOFOCUS_GAIN);
+
+            if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+                _mediaSession.setActive(true);
+            }
+        }
+        ComponentName eventReceiver = new ComponentName(mContext.getPackageName(), MainActivity.MediaButtonIntentReceiver.class.getName());
         if (Build.VERSION.SDK_INT >= 31) {
             _mediaSession.setMediaButtonBroadcastReceiver(eventReceiver);
-        }*/
+        }
         final boolean[] isPlaying = {false};
         final boolean[] debouncePause = {false};
         _mediaSession.setCallback(new MediaSession.Callback() {
@@ -143,6 +181,7 @@ public class WebAppInterface {
                 };
                 mainHandler.post(myRunnable);
                 //mediaNotify();
+                super.onPlay();
             }
 
             @Override
@@ -160,6 +199,7 @@ public class WebAppInterface {
                 };
                 mainHandler.post(myRunnable);
                 //mediaNotify();
+                super.onPause();
             }
 
             @Override
@@ -174,6 +214,7 @@ public class WebAppInterface {
                 };
                 mainHandler.post(myRunnable);
                 //mediaNotify();
+                super.onStop();
             }
 
             @Override
@@ -188,6 +229,7 @@ public class WebAppInterface {
                 };
                 mainHandler.post(myRunnable);
                 //mediaNotify();
+                super.onSkipToNext();
             }
 
             @Override
@@ -202,6 +244,7 @@ public class WebAppInterface {
                 };
                 mainHandler.post(myRunnable);
                 //mediaNotify();
+                super.onSkipToPrevious();
             }
 
             @Override
@@ -236,6 +279,7 @@ public class WebAppInterface {
                 };
                 mainHandler.post(myRunnable);
                 //mediaNotify();
+                super.onSeekTo(pos);
             }
         });
         MediaButtonIntentReceiverNotification receiver = new MediaButtonIntentReceiverNotification();
@@ -684,19 +728,25 @@ public class WebAppInterface {
             );
             mediaNotify();
         }
+        if(MyService.instance == null && WebAppInterface.aNoti != null) {
+            Intent myService = new Intent(mainActivity, MyService.class);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                view.getContext().startForegroundService(myService);
+            }
+        }
     }
 
     @JavascriptInterface
-    public void sessionChangePositionState(int position, int duration, int playbackRate) {
+    public void sessionChangePositionState(int position, int duration, int playbackRate, boolean isPlaying) {
         boolean changeDur = duration != this.duration;
         this.position = position;
         this.duration = duration;
         this.playbackRate = playbackRate;
+        this.playing = isPlaying;
         PlaybackState state = new PlaybackState.Builder()
-                .setActions(
-                        (playing ? PlaybackState.ACTION_PLAY : PlaybackState.ACTION_PAUSE) | PlaybackState.ACTION_PLAY_PAUSE |
-                                PlaybackState.ACTION_SKIP_TO_NEXT | PlaybackState.ACTION_SKIP_TO_PREVIOUS | PlaybackState.ACTION_SEEK_TO)
-                .setState(playing ? PlaybackState.STATE_PLAYING : PlaybackState.STATE_PAUSED, position, playbackRate, SystemClock.elapsedRealtime())
+                .setActions(PlaybackState.ACTION_PLAY | PlaybackState.ACTION_PAUSE | PlaybackState.ACTION_PLAY_PAUSE |
+                        PlaybackState.ACTION_SKIP_TO_NEXT | PlaybackState.ACTION_SKIP_TO_PREVIOUS | PlaybackState.ACTION_SEEK_TO | PlaybackState.ACTION_STOP)
+                .setState(isPlaying ? PlaybackState.STATE_PLAYING : PlaybackState.STATE_PAUSED, position, playbackRate, SystemClock.elapsedRealtime())
                 .build();
         _mediaSession.setPlaybackState(state);
         if(changeDur) {
@@ -716,20 +766,18 @@ public class WebAppInterface {
     @JavascriptInterface
     public void sessionChangePlaying(boolean playing) {
         this.playing = playing;
-        PlaybackState state = new PlaybackState.Builder()
-                .setActions(
-                        (playing ? PlaybackState.ACTION_PLAY : PlaybackState.ACTION_PAUSE) | PlaybackState.ACTION_PLAY_PAUSE |
-                                PlaybackState.ACTION_SKIP_TO_NEXT | PlaybackState.ACTION_SKIP_TO_PREVIOUS | PlaybackState.ACTION_SEEK_TO)
+        /*PlaybackState state = new PlaybackState.Builder()
                 .setState(playing ? PlaybackState.STATE_PLAYING : PlaybackState.STATE_PAUSED, position, playbackRate, SystemClock.elapsedRealtime())
                 .build();
-        _mediaSession.setPlaybackState(state);
-        mediaNotify();
-        if(MyService.instance == null && playing && WebAppInterface.aNoti != null) {
-            Intent myService = new Intent(mainActivity, MyService.class);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                view.getContext().startForegroundService(myService);
-            }
+        _mediaSession.setPlaybackState(state);*/
+        if(!playing) {
+            ((AudioManager) MyService.instance.getSystemService(
+                    Context.AUDIO_SERVICE)).requestAudioFocus(
+                    null,
+                    AudioManager.STREAM_MUSIC,
+                    AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
         }
+        mediaNotify();
     }
 
     static Notification aNoti = null;
