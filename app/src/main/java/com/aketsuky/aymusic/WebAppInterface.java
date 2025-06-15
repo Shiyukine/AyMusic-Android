@@ -26,6 +26,7 @@ import android.os.Handler;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.CookieSyncManager;
 import android.webkit.JavascriptInterface;
@@ -34,6 +35,7 @@ import android.widget.Toast;
 
 import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.ViewCompat;
 import androidx.webkit.WebViewCompat;
 import androidx.webkit.WebViewFeature;
 import androidx.webkit.WebViewStartUpConfig;
@@ -82,6 +84,26 @@ public class WebAppInterface {
                 MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS);
         AudioManager am = (AudioManager)mContext.getSystemService(Context.AUDIO_SERVICE);
         AudioFocusRequest afr = null;
+        AudioManager.OnAudioFocusChangeListener afChangeListener = new AudioManager.OnAudioFocusChangeListener() {
+            @Override
+            public void onAudioFocusChange(int focusChange) {
+                switch (focusChange) {
+                    case AudioManager.AUDIOFOCUS_GAIN:
+                        _mediaSession.setActive(true);
+                        WebAppInterface._mediaSession.getController().getTransportControls().play();
+                        break;
+                    case AudioManager.AUDIOFOCUS_LOSS:
+                        WebAppInterface._mediaSession.getController().getTransportControls().pause();
+                        break;
+                    case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
+                        WebAppInterface._mediaSession.getController().getTransportControls().pause();
+                        break;
+                    case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
+                        WebAppInterface._mediaSession.getController().getTransportControls().pause();
+                        break;
+                }
+            }
+        };
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             afr = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
                     .setAudioAttributes(
@@ -90,6 +112,7 @@ public class WebAppInterface {
                                     .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                                     .build()
                     )
+                    .setOnAudioFocusChangeListener(afChangeListener)
                     .build();
             int aa = am.requestAudioFocus(afr);
             if (aa == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
@@ -98,12 +121,6 @@ public class WebAppInterface {
         }
         else {
             AudioManager audioManager = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
-            AudioManager.OnAudioFocusChangeListener afChangeListener = new AudioManager.OnAudioFocusChangeListener() {
-                @Override
-                public void onAudioFocusChange(int i) {
-                    Log.e("gfdsgdfgdsgdf", "" + i);
-                }
-            };
             int result = audioManager.requestAudioFocus(afChangeListener,
                     // Use the music stream.
                     AudioManager.STREAM_MUSIC,
@@ -114,6 +131,7 @@ public class WebAppInterface {
                 _mediaSession.setActive(true);
             }
         }
+        _mediaSession.setActive(true);
         ComponentName eventReceiver = new ComponentName(mContext.getPackageName(), MainActivity.MediaButtonIntentReceiver.class.getName());
         if (Build.VERSION.SDK_INT >= 31) {
             _mediaSession.setMediaButtonBroadcastReceiver(eventReceiver);
@@ -800,6 +818,13 @@ public class WebAppInterface {
             _mediaSession.getController().getTransportControls().play();
         }
         Log.e("fsdfsqf", aa + "");
+    }
+
+    public static String windowInsetsJSON = "{\"left\": 0, \"top\": 0, \"right\": 0, \"bottom\": 0}";
+
+    @JavascriptInterface
+    public String getWindowInsets() {
+        return windowInsetsJSON;
     }
 
     void mediaNotify() {

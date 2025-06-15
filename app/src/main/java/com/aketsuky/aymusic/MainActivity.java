@@ -1,5 +1,6 @@
 package com.aketsuky.aymusic;
 
+import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -8,6 +9,9 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.OnApplyWindowInsetsListener;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.webkit.ServiceWorkerClientCompat;
 import androidx.webkit.ServiceWorkerControllerCompat;
 
@@ -21,6 +25,7 @@ import android.content.IntentFilter;
 import android.content.res.AssetManager;
 import android.database.Cursor;
 import android.graphics.Color;
+import android.graphics.Insets;
 import android.media.AudioAttributes;
 import android.media.AudioFocusRequest;
 import android.media.AudioManager;
@@ -115,7 +120,18 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        EdgeToEdge.enable(this);
         super.onCreate(savedInstanceState);
+        ViewCompat.setOnApplyWindowInsetsListener(this.getWindow().getDecorView(), new OnApplyWindowInsetsListener() {
+            @NonNull
+            @Override
+            public WindowInsetsCompat onApplyWindowInsets(@NonNull View v, @NonNull WindowInsetsCompat insets) {
+                androidx.core.graphics.Insets in = insets.getInsets(WindowInsetsCompat.Type.navigationBars()
+                        | WindowInsetsCompat.Type.displayCutout());
+                WebAppInterface.windowInsetsJSON = "{\"left\": " + in.left + ", \"top\": " + in.top + ", \"right\": " + in.right + ", \"bottom\": " + in.bottom + "}";
+                return WindowInsetsCompat.CONSUMED;
+            }
+        });
         //Log.e("vdfsxfdssd", "Bearer HUIHufsduhqiusdfuisiuYHfd".split("Bearer ")[1]);
         setContentView(R.layout.activity_main);
         BroadcastReceiver mNoisyReceiver = new BroadcastReceiver() {
@@ -138,16 +154,6 @@ public class MainActivity extends AppCompatActivity {
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
             actionBar.hide();
-        }
-        if (Build.VERSION.SDK_INT >= 19 && Build.VERSION.SDK_INT < 21) {
-            setWindowFlag(this, WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS, true);
-        }
-        if (Build.VERSION.SDK_INT >= 19) {
-            getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
-        }
-        if (Build.VERSION.SDK_INT >= 21) {
-            setWindowFlag(this, WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS, false);
-            getWindow().setStatusBarColor(Color.TRANSPARENT);
         }
         MediaWebView webView = findViewById(R.id.wb);
         MainActivity main = this;
@@ -206,7 +212,7 @@ public class MainActivity extends AppCompatActivity {
             @Nullable
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-                return WVshouldInterceptRequest(main, view, request);
+                return WVshouldInterceptRequest(main, view, request, 0);
             }
 
             @Override
@@ -234,7 +240,7 @@ public class MainActivity extends AppCompatActivity {
         swController.setServiceWorkerClient(new ServiceWorkerClientCompat() {
             @Override
             public WebResourceResponse shouldInterceptRequest(@NonNull WebResourceRequest request) {
-                return WVshouldInterceptRequest(main, null, request);
+                return WVshouldInterceptRequest(main, null, request, 0);
             }
         });
         //load();
@@ -456,7 +462,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private WebResourceResponse WVshouldInterceptRequest(MainActivity main, WebView view, WebResourceRequest request) {
+    private WebResourceResponse WVshouldInterceptRequest(MainActivity main, WebView view, WebResourceRequest request, int tryN) {
         if (request.getUrl() != null && !Adblock.isAGoodUrl(request.getUrl().toString()))
             return new WebResourceResponse("text/html", "UTF-8", new ByteArrayInputStream("<p></p>".getBytes()));
         String urlrewrite = request.getUrl().toString();
@@ -717,8 +723,14 @@ public class MainActivity extends AppCompatActivity {
             }
             catch (SocketException e) {
                 e.printStackTrace();
-                Log.e("shouldInterceptRequest", "retrying");
-                return WVshouldInterceptRequest(main, view, request);
+                if(tryN < 3) {
+                    Log.e("shouldInterceptRequest", "retrying");
+                    return WVshouldInterceptRequest(main, view, request, tryN + 1);
+                }
+                else {
+                    Log.e("shouldInterceptRequest", "can't retry after 3 tries");
+                }
+                return null;
             }
             catch (Exception e) {
                 e.printStackTrace();
