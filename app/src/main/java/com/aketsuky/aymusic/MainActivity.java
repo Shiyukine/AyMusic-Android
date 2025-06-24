@@ -144,7 +144,7 @@ public class MainActivity extends AppCompatActivity {
         };
         IntentFilter filter = new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
         if (Build.VERSION.SDK_INT >= 34 && getApplicationInfo().targetSdkVersion >= 34) {
-            registerReceiver(mNoisyReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+            registerReceiver(mNoisyReceiver, filter, Context.RECEIVER_EXPORTED);
         } else {
             registerReceiver(mNoisyReceiver, filter);
         }
