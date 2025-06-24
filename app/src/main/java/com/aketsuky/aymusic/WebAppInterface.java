@@ -82,55 +82,6 @@ public class WebAppInterface {
         _mediaSession = new MediaSession(c, MEDIA_SESSION_TAG);
         _mediaSession.setFlags(MediaSession.FLAG_HANDLES_MEDIA_BUTTONS |
                 MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS);
-        AudioManager am = (AudioManager)mContext.getSystemService(Context.AUDIO_SERVICE);
-        AudioFocusRequest afr = null;
-        AudioManager.OnAudioFocusChangeListener afChangeListener = new AudioManager.OnAudioFocusChangeListener() {
-            @Override
-            public void onAudioFocusChange(int focusChange) {
-                switch (focusChange) {
-                    case AudioManager.AUDIOFOCUS_GAIN:
-                        _mediaSession.setActive(true);
-                        WebAppInterface._mediaSession.getController().getTransportControls().play();
-                        break;
-                    case AudioManager.AUDIOFOCUS_LOSS:
-                        WebAppInterface._mediaSession.getController().getTransportControls().pause();
-                        break;
-                    case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
-                        WebAppInterface._mediaSession.getController().getTransportControls().pause();
-                        break;
-                    case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
-                        WebAppInterface._mediaSession.getController().getTransportControls().pause();
-                        break;
-                }
-            }
-        };
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            afr = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-                    .setAudioAttributes(
-                            new AudioAttributes.Builder()
-                                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                                    .build()
-                    )
-                    .setOnAudioFocusChangeListener(afChangeListener)
-                    .build();
-            int aa = am.requestAudioFocus(afr);
-            if (aa == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-                _mediaSession.setActive(true);
-            }
-        }
-        else {
-            AudioManager audioManager = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
-            int result = audioManager.requestAudioFocus(afChangeListener,
-                    // Use the music stream.
-                    AudioManager.STREAM_MUSIC,
-                    // Request permanent focus.
-                    AudioManager.AUDIOFOCUS_GAIN);
-
-            if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-                _mediaSession.setActive(true);
-            }
-        }
         _mediaSession.setActive(true);
         ComponentName eventReceiver = new ComponentName(mContext.getPackageName(), MainActivity.MediaButtonIntentReceiver.class.getName());
         if (Build.VERSION.SDK_INT >= 31) {
