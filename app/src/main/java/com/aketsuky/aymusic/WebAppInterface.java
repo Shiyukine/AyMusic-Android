@@ -788,14 +788,16 @@ public class WebAppInterface {
                 .setState(playing ? PlaybackState.STATE_PLAYING : PlaybackState.STATE_PAUSED, position, playbackRate, SystemClock.elapsedRealtime())
                 .build();
         _mediaSession.setPlaybackState(state);*/
-        if(!playing) {
-            ((AudioManager) MyService.instance.getSystemService(
-                    Context.AUDIO_SERVICE)).requestAudioFocus(
-                    null,
-                    AudioManager.STREAM_MUSIC,
-                    AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
+        if(MyService.instance != null) {
+            if (!playing) {
+                ((AudioManager) MyService.instance.getSystemService(
+                        Context.AUDIO_SERVICE)).requestAudioFocus(
+                        null,
+                        AudioManager.STREAM_MUSIC,
+                        AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
+            }
+            mediaNotify();
         }
-        mediaNotify();
     }
 
     static Notification aNoti = null;
