@@ -1,6 +1,10 @@
 package com.aketsuky.aymusic;
 
+import android.os.Build;
+import android.webkit.MimeTypeMap;
+
 import java.io.File;
+import java.util.Objects;
 
 public class Utils {
     public static boolean deleteDir(File dir) {
@@ -16,5 +20,23 @@ public class Utils {
 
         // The directory is now empty so delete it
         return dir.delete();
+    }
+
+    public static String getMimetypeFromUrl(String url)
+    {
+        if(Build.VERSION.SDK_INT >= 29)
+        {
+            return MimeTypeMap.getSingleton().getMimeTypeFromExtension(MimeTypeMap.getFileExtensionFromUrl(url));
+        }
+        else {
+            String ret = MimeTypeMap.getSingleton().getMimeTypeFromExtension(MimeTypeMap.getFileExtensionFromUrl(url));
+            if(ret == null)
+            {
+                String ext = MimeTypeMap.getFileExtensionFromUrl(url);
+                if(Objects.equals(ext, "js")) ret = "text/javascript";
+                if(Objects.equals(ext, "json")) ret = "application/json";
+            }
+            return ret;
+        }
     }
 }
