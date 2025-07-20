@@ -11,6 +11,7 @@ import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.OnApplyWindowInsetsListener;
 import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.webkit.ServiceWorkerClientCompat;
 import androidx.webkit.ServiceWorkerControllerCompat;
@@ -40,6 +41,7 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.Window;
+import android.view.WindowInsetsController;
 import android.view.WindowManager;
 import android.webkit.CookieManager;
 import android.webkit.MimeTypeMap;
@@ -122,6 +124,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         EdgeToEdge.enable(this);
         super.onCreate(savedInstanceState);
+        WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView()).setAppearanceLightNavigationBars(false);
+        WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView()).setAppearanceLightStatusBars(false);
         ViewCompat.setOnApplyWindowInsetsListener(this.getWindow().getDecorView(), new OnApplyWindowInsetsListener() {
             @NonNull
             @Override
@@ -475,7 +479,7 @@ public class MainActivity extends AppCompatActivity {
             try {
                 File tempFile = new File(main.getCacheDir() + "/" + newUrl);
                 FileInputStream is = new FileInputStream(tempFile);
-                String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(MimeTypeMap.getFileExtensionFromUrl(newUrl));
+                String mimeType = Utils.getMimetypeFromUrl(newUrl);
                 Map<String, String> map = new HashMap<>();
                 map.put("Access-Control-Allow-Origin", "*");
                 return new WebResourceResponse(mimeType, "UTF-8", 200, "0K", map, is);
@@ -490,7 +494,7 @@ public class MainActivity extends AppCompatActivity {
             try {
                 File tempFile = new File(main.getDataDir() + "/" + newUrl);
                 FileInputStream is = new FileInputStream(tempFile);
-                String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(MimeTypeMap.getFileExtensionFromUrl(newUrl));
+                String mimeType = Utils.getMimetypeFromUrl(newUrl);
                 Map<String, String> map = new HashMap<>();
                 map.put("Access-Control-Allow-Origin", "*");
                 return new WebResourceResponse(mimeType, "UTF-8", 200, "0K", map, is);
@@ -503,7 +507,7 @@ public class MainActivity extends AppCompatActivity {
         if (urlrewrite.startsWith(FILES_APP_SCHEME)) {
             String newUrl = urlrewrite.replace(FILES_APP_SCHEME, "");
             try {
-                String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(MimeTypeMap.getFileExtensionFromUrl(newUrl));
+                String mimeType = Utils.getMimetypeFromUrl(newUrl);
                 Collection<String> hashset = new ArrayList<>(Arrays.asList(newUrl.split("\\.")));
                 hashset.remove(newUrl.split("\\.")[newUrl.split("\\.").length - 1]);
                 newUrl = TextUtils.join(".", hashset);
@@ -536,8 +540,9 @@ public class MainActivity extends AppCompatActivity {
             try {
                 AssetManager am = getAssets();
                 InputStream is = am.open(newUrl);
-                String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(MimeTypeMap.getFileExtensionFromUrl(newUrl));
+                String mimeType = Utils.getMimetypeFromUrl(newUrl);
                 //loadedAssets.put(newUrl, total.toString());
+                Log.e("fezfdfgdsgfvd", mimeType + " " + newUrl);
                 return new WebResourceResponse(mimeType, "UTF-8", is);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -552,7 +557,7 @@ public class MainActivity extends AppCompatActivity {
                 connection.setReadTimeout(5000);
                 connection.setInstanceFollowRedirects(false);
                 connection.setRequestMethod(request.getMethod());
-                String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(MimeTypeMap.getFileExtensionFromUrl(urlrewrite));
+                String mimeType = Utils.getMimetypeFromUrl(urlrewrite);
                 if(request.getMethod().toLowerCase().equals("post") && WebAppInterface.postData != null) {
                     connection.setDoOutput(true);
                     OutputStream os = connection.getOutputStream();
