@@ -542,7 +542,6 @@ public class MainActivity extends AppCompatActivity {
                 InputStream is = am.open(newUrl);
                 String mimeType = Utils.getMimetypeFromUrl(newUrl);
                 //loadedAssets.put(newUrl, total.toString());
-                Log.e("fezfdfgdsgfvd", mimeType + " " + newUrl);
                 return new WebResourceResponse(mimeType, "UTF-8", is);
             } catch (Exception e) {
                 e.printStackTrace();
