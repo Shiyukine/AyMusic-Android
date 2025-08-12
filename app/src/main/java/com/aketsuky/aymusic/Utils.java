@@ -1,9 +1,20 @@
 package com.aketsuky.aymusic;
 
+import android.content.res.AssetManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Build;
 import android.webkit.MimeTypeMap;
 
+import androidx.annotation.OptIn;
+import androidx.media3.common.util.UnstableApi;
+
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.HashMap;
 import java.util.Objects;
 
 public class Utils {

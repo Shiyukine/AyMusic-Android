@@ -14,6 +14,8 @@ import android.util.Log;
 import android.webkit.WebView;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.OptIn;
+import androidx.media3.common.util.UnstableApi;
 
 public class MyService extends Service {
     WebView wb;
@@ -30,6 +32,7 @@ public class MyService extends Service {
         return false;
     }
 
+    @OptIn(markerClass = UnstableApi.class)
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         wb = MainActivity.actualWb;
@@ -39,6 +42,7 @@ public class MyService extends Service {
         return super.onStartCommand(intent, flags, startId);
     }
 
+    @OptIn(markerClass = UnstableApi.class)
     public void updateNotif() {
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         mNotificationManager.notify(1, WebAppInterface.aNoti);

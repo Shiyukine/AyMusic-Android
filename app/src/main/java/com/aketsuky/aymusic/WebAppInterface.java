@@ -5,7 +5,6 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -17,28 +16,23 @@ import android.media.AudioAttributes;
 import android.media.AudioFocusRequest;
 import android.media.AudioManager;
 import android.media.MediaMetadata;
-import android.media.MediaPlayer;
-import android.media.session.MediaSession;
-import android.media.session.PlaybackState;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.SystemClock;
 import android.util.Log;
-import android.view.KeyEvent;
-import android.view.View;
 import android.webkit.CookieManager;
-import android.webkit.CookieSyncManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
-import android.widget.Toast;
 
 import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
-import androidx.core.view.ViewCompat;
-import androidx.webkit.WebViewCompat;
-import androidx.webkit.WebViewFeature;
-import androidx.webkit.WebViewStartUpConfig;
+import androidx.media3.common.util.UnstableApi;
+import androidx.media3.session.CommandButton;
+import androidx.media3.session.legacy.MediaMetadataCompat;
+import androidx.media3.session.legacy.MediaSessionCompat;
+import androidx.media3.session.legacy.PlaybackStateCompat;
 
 import org.json.JSONException;
 
@@ -47,216 +41,62 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
+@UnstableApi
 public class WebAppInterface {
     Context mContext;
     WebView view;
     public static MainActivity mainActivity;
     static HashMap<String, String> clientsToken = new HashMap<>();
-    public static MediaSession _mediaSession = null;
+    @SuppressLint("RestrictedApi")
+    public static MediaSessionCompat _mediaSession = null;
     public static String postData = null;
     final String MEDIA_SESSION_TAG = "AyMusic";
     String channelId = "AyMusicPlayer";
     //MediaButtonIntentReceiver receiver;
-    boolean itsMe = false;
     public static boolean registered = false;
 
+    @SuppressLint("RestrictedApi")
     WebAppInterface(Context c, WebView wv, MainActivity main) {
         mContext = c;
         view = wv;
         mainActivity = main;
-        _mediaSession = new MediaSession(c, MEDIA_SESSION_TAG);
-        _mediaSession.setFlags(MediaSession.FLAG_HANDLES_MEDIA_BUTTONS |
-                MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS);
+        _mediaSession = new MediaSessionCompat(c, MEDIA_SESSION_TAG, null, null, null);
+        _mediaSession.setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS |
+                MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS);
         _mediaSession.setActive(true);
-        ComponentName eventReceiver = new ComponentName(mContext.getPackageName(), MainActivity.MediaButtonIntentReceiver.class.getName());
+        //test if working
+        PlaybackStateCompat state = new PlaybackStateCompat.Builder()
+                .setState(PlaybackStateCompat.STATE_NONE, 0, 0, SystemClock.elapsedRealtime())
+                .build();
+        _mediaSession.setPlaybackState(state);
+        //
+        PendingIntent pi = PendingIntent.getBroadcast(mContext, 0, new Intent(mainActivity, MainActivity.MediaButtonIntentReceiver.class), PendingIntent.FLAG_IMMUTABLE);
         if (Build.VERSION.SDK_INT >= 31) {
-            _mediaSession.setMediaButtonBroadcastReceiver(eventReceiver);
+            _mediaSession.setMediaButtonReceiver(pi);
         }
-        final boolean[] isPlaying = {false};
-        final boolean[] debouncePause = {false};
-        _mediaSession.setCallback(new MediaSession.Callback() {
-            @Override
-            public void onPlay() {
-                Handler mainHandler = new Handler(mContext.getMainLooper());
-
-                Runnable myRunnable = new Runnable() {
-                    @Override
-                    public void run() {
-                        /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !isPlaying[0]) {
-                            AudioManager am = (AudioManager)MyService.instance.getSystemService(Context.AUDIO_SERVICE);
-                            AudioFocusRequest afr = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-                                    .setAudioAttributes(
-                                            new AudioAttributes.Builder()
-                                                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                                                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                                                    .build()
-                                    )
-                                    .build();
-                            //int aa = am.requestAudioFocus(afr,AudioManager.STREAM_MUSIC,AudioManager.AUDIOFOCUS_GAIN);
-                            int aa = am.requestAudioFocus(afr);
-                            if(aa == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-                                isPlaying[0] = true;
-                                _mediaSession.getController().getTransportControls().play();
-                            }
-                        }*/
-                        /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !isPlaying[0]) {
-                            AudioManager am = (AudioManager) MyService.instance.getSystemService(Context.AUDIO_SERVICE);
-                            AudioFocusRequest afr = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
-                                    .setAudioAttributes(
-                                            new AudioAttributes.Builder()
-                                                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                                                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                                                    .build()
-                                    )
-                                    .setOnAudioFocusChangeListener(new AudioManager.OnAudioFocusChangeListener() {
-                                        @Override
-                                        public void onAudioFocusChange(int i) {
-                                            Log.e("gfdsgdfgdsgdf", "" + i);
-                                            if (i == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
-                                                // Pause playback
-                                            } else if (i == AudioManager.AUDIOFOCUS_GAIN) {
-                                                // Resume playback
-                                                WebAppInterface._mediaSession.getController().getTransportControls().play();
-                                            } else if (i == AudioManager.AUDIOFOCUS_LOSS) {
-                                                // Stop playback
-                                            }
-                                        }
-                                    })
-                                    .build();
-                            //int aa = am.requestAudioFocus(afr,AudioManager.STREAM_MUSIC,AudioManager.AUDIOFOCUS_GAIN);
-                            int aa = am.requestAudioFocus(afr);
-                            if (aa == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-                                //WebAppInterface._mediaSession.getController().getTransportControls().play();
-                            }
-                        }*/
-                        view.evaluateJavascript("listeners.player.play()", null);
-                        isPlaying[0] = false;
-                    } // This is your code
-                };
-                mainHandler.post(myRunnable);
-                //mediaNotify();
-                super.onPlay();
-            }
-
-            @Override
-            public void onPause() {
-                Handler mainHandler = new Handler(mContext.getMainLooper());
-
-                Runnable myRunnable = new Runnable() {
-                    @Override
-                    public void run() {
-                        if(!debouncePause[0]) {
-                            view.evaluateJavascript("listeners.player.pause()", null);
-                        }
-                        debouncePause[0] = false;
-                    } // This is your code
-                };
-                mainHandler.post(myRunnable);
-                //mediaNotify();
-                super.onPause();
-            }
-
-            @Override
-            public void onStop() {
-                Handler mainHandler = new Handler(mContext.getMainLooper());
-
-                Runnable myRunnable = new Runnable() {
-                    @Override
-                    public void run() {
-                        view.evaluateJavascript("listeners.player.pause()", null);
-                    } // This is your code
-                };
-                mainHandler.post(myRunnable);
-                //mediaNotify();
-                super.onStop();
-            }
-
-            @Override
-            public void onSkipToNext() {
-                Handler mainHandler = new Handler(mContext.getMainLooper());
-
-                Runnable myRunnable = new Runnable() {
-                    @Override
-                    public void run() {
-                        view.evaluateJavascript("listeners.player.next()", null);
-                    } // This is your code
-                };
-                mainHandler.post(myRunnable);
-                //mediaNotify();
-                super.onSkipToNext();
-            }
-
-            @Override
-            public void onSkipToPrevious() {
-                Handler mainHandler = new Handler(mContext.getMainLooper());
-
-                Runnable myRunnable = new Runnable() {
-                    @Override
-                    public void run() {
-                        view.evaluateJavascript("listeners.player.previous()", null);
-                    } // This is your code
-                };
-                mainHandler.post(myRunnable);
-                //mediaNotify();
-                super.onSkipToPrevious();
-            }
-
-            @Override
-            public boolean onMediaButtonEvent(final Intent mediaButtonIntent) {
-                KeyEvent keyEvent = (KeyEvent) mediaButtonIntent.getExtras().get(Intent.EXTRA_KEY_EVENT);
-                assert keyEvent != null;
-                Log.d("aa", "GOT MediaButton EVENT " + keyEvent.getKeyCode() + " action: " + keyEvent.getAction());
-                if(keyEvent.getAction() == KeyEvent.ACTION_DOWN) {
-                    if (keyEvent.getKeyCode() == KeyEvent.KEYCODE_MEDIA_PLAY ||
-                            keyEvent.getKeyCode() == KeyEvent.KEYCODE_MEDIA_PAUSE ||
-                            keyEvent.getKeyCode() == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE) {
-                        if (_mediaSession.getController().getPlaybackState().getState() == PlaybackState.STATE_PLAYING) {
-                            WebAppInterface._mediaSession.getController().getTransportControls().pause();
-                        } else {
-                            debouncePause[0] = true;
-                            WebAppInterface._mediaSession.getController().getTransportControls().play();
-                        }
-                    }
-                }
-                return super.onMediaButtonEvent(mediaButtonIntent);
-            }
-
-            @Override
-            public void onSeekTo(long pos) {
-                Handler mainHandler = new Handler(mContext.getMainLooper());
-
-                Runnable myRunnable = new Runnable() {
-                    @Override
-                    public void run() {
-                        view.evaluateJavascript("listeners.player.seek(" + pos + ")", null);
-                    } // This is your code
-                };
-                mainHandler.post(myRunnable);
-                //mediaNotify();
-                super.onSeekTo(pos);
-            }
-        });
+        Handler mainHandler = new Handler(mContext.getMainLooper());
+        _mediaSession.setCallback(new MediaSessionCallback(view, _mediaSession), mainHandler);
         MediaButtonIntentReceiverNotification receiver = new MediaButtonIntentReceiverNotification();
         //receiver.setWb(wv);
         ContextCompat.registerReceiver(mContext, receiver, new IntentFilter("mediaPause"), ContextCompat.RECEIVER_NOT_EXPORTED);
         ContextCompat.registerReceiver(mContext, receiver, new IntentFilter("mediaPlay"), ContextCompat.RECEIVER_NOT_EXPORTED);
         ContextCompat.registerReceiver(mContext, receiver, new IntentFilter("mediaNext"), ContextCompat.RECEIVER_NOT_EXPORTED);
         ContextCompat.registerReceiver(mContext, receiver, new IntentFilter("mediaPrevious"), ContextCompat.RECEIVER_NOT_EXPORTED);
+        ContextCompat.registerReceiver(mContext, receiver, new IntentFilter("shuffle_true"), ContextCompat.RECEIVER_NOT_EXPORTED);
+        ContextCompat.registerReceiver(mContext, receiver, new IntentFilter("shuffle_false"), ContextCompat.RECEIVER_NOT_EXPORTED);
+        ContextCompat.registerReceiver(mContext, receiver, new IntentFilter("repeat_0"), ContextCompat.RECEIVER_NOT_EXPORTED);
+        ContextCompat.registerReceiver(mContext, receiver, new IntentFilter("repeat_1"), ContextCompat.RECEIVER_NOT_EXPORTED);
+        ContextCompat.registerReceiver(mContext, receiver, new IntentFilter("repeat_2"), ContextCompat.RECEIVER_NOT_EXPORTED);
     }
 
     @JavascriptInterface
@@ -677,7 +517,10 @@ public class WebAppInterface {
     int duration = 0;
     int playbackRate = 1;
     boolean playing = false;
+    boolean shuffling = false;
+    int repeat = 0;
 
+    @SuppressLint("RestrictedApi")
     @JavascriptInterface
     public void sessionChangeMediaMetadata(String title, String album, String artist, String artwork) {
         boolean changeSession = !title.equals(this.title) && !artist.equals(this.artist) && !album.equals(this.album);
@@ -687,12 +530,12 @@ public class WebAppInterface {
         this.artwork = artwork;
         if(changeSession) {
             _mediaSession.setMetadata(
-                    new MediaMetadata.Builder()
-                            .putString(MediaMetadata.METADATA_KEY_TITLE, title)
-                            .putString(MediaMetadata.METADATA_KEY_ARTIST, artist)
-                            .putBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART, getBitmapFromURL(artwork))
-                            .putString(MediaMetadata.METADATA_KEY_ALBUM, album)
-                            .putLong(MediaMetadata.METADATA_KEY_DURATION, duration)
+                    new MediaMetadataCompat.Builder()
+                            .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
+                            .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
+                            .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, getBitmapFromURL(artwork))
+                            .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, album)
+                            .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration)
                             .build()
             );
             mediaNotify();
@@ -705,30 +548,47 @@ public class WebAppInterface {
         }
     }
 
+    @SuppressLint("RestrictedApi")
     @JavascriptInterface
-    public void sessionChangePositionState(int position, int duration, int playbackRate, boolean isPlaying) {
+    public void sessionChangePositionState(int position, int duration, int playbackRate, boolean isPlaying, boolean shuffling, int repeat) {
         boolean changeDur = duration != this.duration;
+        boolean changeRepeat = repeat != this.repeat;
+        boolean changeShuffle = shuffling != this.shuffling;
         this.position = position;
         this.duration = duration;
         this.playbackRate = playbackRate;
         this.playing = isPlaying;
-        PlaybackState state = new PlaybackState.Builder()
-                .setActions(PlaybackState.ACTION_PLAY | PlaybackState.ACTION_PAUSE | PlaybackState.ACTION_PLAY_PAUSE |
-                        PlaybackState.ACTION_SKIP_TO_NEXT | PlaybackState.ACTION_SKIP_TO_PREVIOUS | PlaybackState.ACTION_SEEK_TO | PlaybackState.ACTION_STOP)
-                .setState(isPlaying ? PlaybackState.STATE_PLAYING : PlaybackState.STATE_PAUSED, position, playbackRate, SystemClock.elapsedRealtime())
+        this.shuffling = shuffling;
+        this.repeat = repeat;
+        int shufflingIcon = shuffling ? R.drawable.baseline_shuffle_on_24 : R.drawable.baseline_shuffle_24;
+        Bundle shuffleExtras = new Bundle();
+        shuffleExtras.putInt(
+                androidx.media3.session.MediaConstants.EXTRAS_KEY_COMMAND_BUTTON_ICON_COMPAT,
+                shuffling ? CommandButton.ICON_SHUFFLE_ON : CommandButton.ICON_SHUFFLE_OFF);
+        int repeatIcon = repeat == 0 ? R.drawable.baseline_repeat_24 : repeat == 1 ? R.drawable.baseline_repeat_on_24 : R.drawable.baseline_repeat_one_on_24;
+        Bundle repeatExtras = new Bundle();
+        repeatExtras.putInt(
+                androidx.media3.session.MediaConstants.EXTRAS_KEY_COMMAND_BUTTON_ICON_COMPAT,
+                repeat == 0 ? CommandButton.ICON_REPEAT_OFF : repeat == 1 ? CommandButton.ICON_REPEAT_ONE : CommandButton.ICON_REPEAT_ALL);
+        PlaybackStateCompat state = new PlaybackStateCompat.Builder()
+                .setActions(PlaybackStateCompat.ACTION_PLAY | PlaybackStateCompat.ACTION_PAUSE | PlaybackStateCompat.ACTION_PLAY_PAUSE |
+                        PlaybackStateCompat.ACTION_SKIP_TO_NEXT | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS | PlaybackStateCompat.ACTION_SEEK_TO | PlaybackStateCompat.ACTION_STOP)
+                .addCustomAction(new PlaybackStateCompat.CustomAction.Builder("shuffle_" + shuffling, "Shuffle", shufflingIcon).setExtras(shuffleExtras).build())
+                .addCustomAction(new PlaybackStateCompat.CustomAction.Builder("repeat_" + repeat, "Repeat", repeatIcon).setExtras(repeatExtras).build())
+                .setState(isPlaying ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED, position, playbackRate, SystemClock.elapsedRealtime())
                 .build();
         _mediaSession.setPlaybackState(state);
-        if(changeDur) {
+        if(changeDur || changeRepeat || changeShuffle) {
             _mediaSession.setMetadata(
-                    new MediaMetadata.Builder()
-                            .putString(MediaMetadata.METADATA_KEY_TITLE, title)
-                            .putString(MediaMetadata.METADATA_KEY_ARTIST, artist)
-                            .putBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART, getBitmapFromURL(artwork))
-                            .putString(MediaMetadata.METADATA_KEY_ALBUM, album)
-                            .putLong(MediaMetadata.METADATA_KEY_DURATION, duration)
+                    new MediaMetadataCompat.Builder()
+                            .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
+                            .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
+                            .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, getBitmapFromURL(artwork))
+                            .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, album)
+                            .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration)
                             .build()
             );
-            mediaNotify();
+            if(changeRepeat || changeShuffle) mediaNotify();
         }
     }
 
@@ -753,6 +613,7 @@ public class WebAppInterface {
 
     static Notification aNoti = null;
 
+    @SuppressLint("RestrictedApi")
     @RequiresApi(api = Build.VERSION_CODES.O)
     @JavascriptInterface
     public void audioPriority() {
@@ -780,6 +641,7 @@ public class WebAppInterface {
         return windowInsetsJSON;
     }
 
+    @SuppressLint("RestrictedApi")
     void mediaNotify() {
         Context context = mContext;
         NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
@@ -812,6 +674,12 @@ public class WebAppInterface {
                     //.setLargeIcon(R.drawable.ic_launcher_foreground)
                     .setAutoCancel(playing)
                     .setOngoing(playing)
+                    .addAction(new Notification.Action(shuffling ? R.drawable.baseline_shuffle_on_24 : R.drawable.baseline_shuffle_24, "Shuffle", PendingIntent.getBroadcast(
+                            context,
+                            1,
+                            new Intent("shuffle_" + shuffling),
+                            PendingIntent.FLAG_IMMUTABLE
+                    )))
                     .addAction(new Notification.Action(R.drawable.ic_baseline_skip_previous_24, "Previous", PendingIntent.getBroadcast(
                             context,
                             1,
@@ -830,12 +698,18 @@ public class WebAppInterface {
                             new Intent("mediaNext"),
                             PendingIntent.FLAG_IMMUTABLE
                     )))
+                    .addAction(new Notification.Action(repeat == 0 ? R.drawable.baseline_repeat_24 : repeat == 1 ? R.drawable.baseline_repeat_on_24 : R.drawable.baseline_repeat_one_on_24, "Repeat", PendingIntent.getBroadcast(
+                            context,
+                            1,
+                            new Intent("repeat_" + repeat),
+                            PendingIntent.FLAG_IMMUTABLE
+                    )))
                     .setContentIntent(resultPendingIntent)
                     //.setNotificationSilent()
                     .setSound(null)
                     .setStyle(new Notification.MediaStyle()
                             .setShowActionsInCompactView(0, 1, 2)
-                            .setMediaSession(_mediaSession.getSessionToken()))
+                            .setMediaSession(_mediaSession.getSessionToken().getToken()))
                     .setChannelId(channelId)
                     //.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE)
                     .build();

@@ -3,6 +3,9 @@ package com.aketsuky.aymusic;
 import android.util.Log;
 import android.webkit.WebView;
 
+import androidx.annotation.OptIn;
+import androidx.media3.common.util.UnstableApi;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -30,6 +33,7 @@ public class ScriptInjecter {
             map.replace(url, script);
     }
 
+    @OptIn(markerClass = UnstableApi.class)
     public static void addOverrideResponse(String json) throws JSONException {
         JSONArray arr = new JSONArray(json);
         for(int j = 0; j < arr.length(); j++) {
@@ -129,6 +133,7 @@ public class ScriptInjecter {
         return false;
     }
 
+    @OptIn(markerClass = UnstableApi.class)
     public static boolean haveInterceptAllWebRequest(String url) {
         for(Map.Entry<String, Boolean> u : WebAppInterface.interceptAll.entrySet()) {
             if(u.getValue()) {

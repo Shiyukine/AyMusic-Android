@@ -24,6 +24,12 @@
         android:roundIcon="@mipmap/icon_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.AyMusic">
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc"/>
+        <meta-data
+            android:name="androidx.car.app.TintableAttributionIcon"
+            android:resource="@drawable/ic_stat_name" />
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.provider"
@@ -44,6 +50,14 @@
             android:foregroundServiceType="mediaPlayback"
             android:stopWithTask="true"
             android:exported="true"/>
+        <service
+            android:name=".AutoService"
+            android:exported="true"
+            android:icon="@mipmap/icon">
+            <intent-filter>
+                <action android:name="android.media.browse.MediaBrowserService"/>
+            </intent-filter>
+        </service>
         <activity
             android:name=".WebViewPopup"
             android:hardwareAccelerated="true"
@@ -58,7 +72,7 @@
             android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
+                <category android:name="android.intent.category.CAR_LAUNCHER" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>

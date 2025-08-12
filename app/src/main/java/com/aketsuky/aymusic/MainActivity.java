@@ -6,6 +6,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.OptIn;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
@@ -13,9 +14,11 @@ import androidx.core.view.OnApplyWindowInsetsListener;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.media3.common.util.UnstableApi;
 import androidx.webkit.ServiceWorkerClientCompat;
 import androidx.webkit.ServiceWorkerControllerCompat;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
@@ -94,6 +97,8 @@ public class MainActivity extends AppCompatActivity {
             super ();
         }
 
+        @SuppressLint("RestrictedApi")
+        @OptIn(markerClass = UnstableApi.class)
         @Override
         public void onReceive(Context context, Intent intent) {
             String intentAction = intent.getAction();
@@ -120,6 +125,8 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @SuppressLint("WrongConstant")
+    @OptIn(markerClass = UnstableApi.class)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         EdgeToEdge.enable(this);
@@ -139,6 +146,7 @@ public class MainActivity extends AppCompatActivity {
         //Log.e("vdfsxfdssd", "Bearer HUIHufsduhqiusdfuisiuYHfd".split("Bearer ")[1]);
         setContentView(R.layout.activity_main);
         BroadcastReceiver mNoisyReceiver = new BroadcastReceiver() {
+            @SuppressLint("RestrictedApi")
             @Override
             public void onReceive(Context context, Intent intent) {
                 if( WebAppInterface._mediaSession != null) {
@@ -327,6 +335,7 @@ public class MainActivity extends AppCompatActivity {
                 //view.stopLoading();
             }
 
+            @OptIn(markerClass = UnstableApi.class)
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 if (request.getUrl().toString().contains("https://api-auth.soundcloud.com/oauth/authorize")) {
@@ -466,6 +475,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @OptIn(markerClass = UnstableApi.class)
     private WebResourceResponse WVshouldInterceptRequest(MainActivity main, WebView view, WebResourceRequest request, int tryN) {
         if (request.getUrl() != null && !Adblock.isAGoodUrl(request.getUrl().toString()))
             return new WebResourceResponse("text/html", "UTF-8", new ByteArrayInputStream("<p></p>".getBytes()));
