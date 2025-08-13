@@ -160,21 +160,55 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback {
         String actionState = action.split("_")[1];
         if(actionName.equals("shuffle"))
         {
-            if(actionState.equals("true"))
+            if(actionState.equals("true")) {
                 view.evaluateJavascript("listeners.player.setShuffle(false)", null);
-            else
+                _mediaSession.setShuffleMode(PlaybackStateCompat.SHUFFLE_MODE_NONE);
+            }
+            else {
                 view.evaluateJavascript("listeners.player.setShuffle(true)", null);
+                _mediaSession.setShuffleMode(PlaybackStateCompat.SHUFFLE_MODE_ALL);
+            }
         }
         else if(actionName.equals("repeat"))
         {
             int repeat = Integer.parseInt(actionState);
-            if(repeat == 0)
+            if(repeat == 0) {
                 view.evaluateJavascript("listeners.player.setRepeat(1)", null);
-            else if(repeat == 1)
+                _mediaSession.setRepeatMode(PlaybackStateCompat.REPEAT_MODE_ONE);
+            }
+            else if(repeat == 1) {
                 view.evaluateJavascript("listeners.player.setRepeat(2)", null);
-            else
+                _mediaSession.setRepeatMode(PlaybackStateCompat.REPEAT_MODE_ALL);
+            }
+            else {
                 view.evaluateJavascript("listeners.player.setRepeat(0)", null);
+                _mediaSession.setRepeatMode(PlaybackStateCompat.REPEAT_MODE_NONE);
+            }
         }
+    }
+
+    @SuppressLint("RestrictedApi")
+    @Override
+    public void onSetRepeatMode(int repeatMode) {
+        if(repeatMode == PlaybackStateCompat.REPEAT_MODE_ONE)
+            view.evaluateJavascript("listeners.player.setRepeat(1)", null);
+        else if(repeatMode == PlaybackStateCompat.REPEAT_MODE_ALL)
+            view.evaluateJavascript("listeners.player.setRepeat(2)", null);
+        else if(repeatMode == PlaybackStateCompat.REPEAT_MODE_NONE)
+            view.evaluateJavascript("listeners.player.setRepeat(0)", null);
+        _mediaSession.setRepeatMode(repeatMode);
+        super.onSetRepeatMode(repeatMode);
+    }
+
+    @SuppressLint("RestrictedApi")
+    @Override
+    public void onSetShuffleMode(int shuffleMode) {
+        if(shuffleMode == PlaybackStateCompat.SHUFFLE_MODE_NONE)
+            view.evaluateJavascript("listeners.player.setShuffle(false)", null);
+        else
+            view.evaluateJavascript("listeners.player.setShuffle(true)", null);
+        _mediaSession.setShuffleMode(shuffleMode);
+        super.onSetShuffleMode(shuffleMode);
     }
 
     @SuppressLint("RestrictedApi")

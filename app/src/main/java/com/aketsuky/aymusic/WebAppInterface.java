@@ -588,6 +588,8 @@ public class WebAppInterface {
                             .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration)
                             .build()
             );
+            _mediaSession.setRepeatMode(repeat == 0 ? PlaybackStateCompat.REPEAT_MODE_NONE : repeat == 1 ? PlaybackStateCompat.REPEAT_MODE_ONE : PlaybackStateCompat.REPEAT_MODE_ALL);
+            _mediaSession.setShuffleMode(shuffling ? PlaybackStateCompat.SHUFFLE_MODE_ALL : PlaybackStateCompat.SHUFFLE_MODE_NONE);
             if(changeRepeat || changeShuffle) mediaNotify();
         }
     }
