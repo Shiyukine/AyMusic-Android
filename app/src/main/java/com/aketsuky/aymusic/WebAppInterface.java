@@ -5,6 +5,11 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.bluetooth.BluetoothA2dp;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothProfile;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -17,9 +22,11 @@ import android.media.AudioFocusRequest;
 import android.media.AudioManager;
 import android.media.MediaMetadata;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.SystemClock;
 import android.util.Log;
 import android.webkit.CookieManager;
@@ -97,6 +104,47 @@ public class WebAppInterface {
         ContextCompat.registerReceiver(mContext, receiver, new IntentFilter("repeat_0"), ContextCompat.RECEIVER_NOT_EXPORTED);
         ContextCompat.registerReceiver(mContext, receiver, new IntentFilter("repeat_1"), ContextCompat.RECEIVER_NOT_EXPORTED);
         ContextCompat.registerReceiver(mContext, receiver, new IntentFilter("repeat_2"), ContextCompat.RECEIVER_NOT_EXPORTED);
+
+        BroadcastReceiver bluetoothReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                String action = intent.getAction();
+
+                if (BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED.equals(action)) {
+                    int state = intent.getIntExtra(BluetoothProfile.EXTRA_STATE, -1);
+
+                    if (state == BluetoothProfile.STATE_CONNECTED) {
+                        Log.d("Bluetooth", "A2DP connected - refreshing metadata");
+                        // Bluetooth A2DP connected - refresh metadata after a short delay
+                        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                            // Force refresh metadata regardless of changeSession logic
+                            refreshMediaSession();
+                        }, 1000); // 1 second delay to ensure connection is fully established
+                    }
+                }
+
+                // Optional: Handle other Bluetooth events
+                else if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
+                    Log.d("Bluetooth", "ACL connected");
+                    BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                    // Handle general Bluetooth device connection
+                }
+            }
+        };
+
+        IntentFilter filter = new IntentFilter();
+
+        // Listen for A2DP (Advanced Audio Distribution Profile) connection changes
+        filter.addAction(BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED);
+
+        // Optional: Also listen for general Bluetooth adapter state changes
+        filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
+
+        // Optional: Listen for ACL (Access Control List) connection events
+        filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
+        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+
+        ContextCompat.registerReceiver(mContext, receiver, filter, ContextCompat.RECEIVER_EXPORTED);
     }
 
     @JavascriptInterface
@@ -314,40 +362,56 @@ public class WebAppInterface {
         WebAppInterface.clientsToken.remove(platform);
     }
 
+    @SuppressLint("StaticFieldLeak")
     @JavascriptInterface
     public void saveData(String path, byte[] data) {
-        try {
-            int i = path.lastIndexOf("/");
-            if(i < 0) i = 0;
-            File dir = new File(mainActivity.getDataDir() + "/" + path.substring(0, i));
-            if (!dir .exists()) {
-                dir.mkdirs();
+        new AsyncTask<Void, Void, Void>() {
+
+            @Override
+            protected Void doInBackground(Void... voids) {
+                try {
+                    int i = path.lastIndexOf("/");
+                    if (i < 0) i = 0;
+                    File dir = new File(mainActivity.getDataDir() + "/" + path.substring(0, i));
+                    if (!dir.exists()) {
+                        dir.mkdirs();
+                    }
+                    File tempFile = new File(mainActivity.getDataDir() + "/" + path);
+                    FileOutputStream fos = new FileOutputStream(tempFile);
+                    fos.write(data);
+                    fos.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                return null;
             }
-            File tempFile = new File(mainActivity.getDataDir() + "/" + path);
-            FileOutputStream fos = new FileOutputStream(tempFile);
-            fos.write(data);
-            fos.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        }.execute();
     }
 
+    @SuppressLint("StaticFieldLeak")
     @JavascriptInterface
     public void saveCache(String path, byte[] data) {
-        try {
-            int i = path.lastIndexOf("/");
-            if(i < 0) i = 0;
-            File dir = new File(mainActivity.getCacheDir() + "/" + path.substring(0, i));
-            if (!dir .exists()) {
-                dir.mkdirs();
+        new AsyncTask<Void, Void, Void>() {
+
+            @Override
+            protected Void doInBackground(Void... voids) {
+                try {
+                    int i = path.lastIndexOf("/");
+                    if(i < 0) i = 0;
+                    File dir = new File(mainActivity.getCacheDir() + "/" + path.substring(0, i));
+                    if (!dir .exists()) {
+                        dir.mkdirs();
+                    }
+                    File tempFile = new File(mainActivity.getCacheDir() + "/" + path);
+                    FileOutputStream fos = new FileOutputStream(tempFile);
+                    fos.write(data);
+                    fos.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                return null;
             }
-            File tempFile = new File(mainActivity.getCacheDir() + "/" + path);
-            FileOutputStream fos = new FileOutputStream(tempFile);
-            fos.write(data);
-            fos.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        }.execute();
     }
 
     @JavascriptInterface
@@ -451,6 +515,12 @@ public class WebAppInterface {
         ScriptInjecter.addOverrideResponse(json);
     }
 
+    @JavascriptInterface
+    public int getIframeStatus(String url) {
+        //status: 0 - not loaded, 1 - loaded, 2 - failed
+        return ScriptInjecter.getUrlStatus(url);
+    }
+
     HashMap<String, Bitmap> bitmaps = new HashMap<>();
 
     private Bitmap getBitmapFromURL(String strURL) {
@@ -523,29 +593,10 @@ public class WebAppInterface {
     @SuppressLint("RestrictedApi")
     @JavascriptInterface
     public void sessionChangeMediaMetadata(String title, String album, String artist, String artwork) {
-        boolean changeSession = !title.equals(this.title) && !artist.equals(this.artist) && !album.equals(this.album);
         this.title = title;
         this.album = album;
         this.artist = artist;
         this.artwork = artwork;
-        if(changeSession) {
-            _mediaSession.setMetadata(
-                    new MediaMetadataCompat.Builder()
-                            .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
-                            .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
-                            .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, getBitmapFromURL(artwork))
-                            .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, album)
-                            .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration)
-                            .build()
-            );
-            mediaNotify();
-        }
-        if(MyService.instance == null && WebAppInterface.aNoti != null) {
-            Intent myService = new Intent(mainActivity, MyService.class);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                view.getContext().startForegroundService(myService);
-            }
-        }
     }
 
     @SuppressLint("RestrictedApi")
@@ -571,27 +622,48 @@ public class WebAppInterface {
                 androidx.media3.session.MediaConstants.EXTRAS_KEY_COMMAND_BUTTON_ICON_COMPAT,
                 repeat == 0 ? CommandButton.ICON_REPEAT_OFF : repeat == 1 ? CommandButton.ICON_REPEAT_ONE : CommandButton.ICON_REPEAT_ALL);
         PlaybackStateCompat state = new PlaybackStateCompat.Builder()
-                .setActions(PlaybackStateCompat.ACTION_PLAY | PlaybackStateCompat.ACTION_PAUSE | PlaybackStateCompat.ACTION_PLAY_PAUSE |
-                        PlaybackStateCompat.ACTION_SKIP_TO_NEXT | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS | PlaybackStateCompat.ACTION_SEEK_TO | PlaybackStateCompat.ACTION_STOP)
+                .setActions((!isPlaying ? PlaybackStateCompat.ACTION_PLAY : PlaybackStateCompat.ACTION_PAUSE) |
+                        PlaybackStateCompat.ACTION_SKIP_TO_NEXT | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS | PlaybackStateCompat.ACTION_SEEK_TO | PlaybackStateCompat.ACTION_STOP | PlaybackStateCompat.ACTION_SET_REPEAT_MODE | PlaybackStateCompat.ACTION_SET_SHUFFLE_MODE)
                 .addCustomAction(new PlaybackStateCompat.CustomAction.Builder("shuffle_" + shuffling, "Shuffle", shufflingIcon).setExtras(shuffleExtras).build())
                 .addCustomAction(new PlaybackStateCompat.CustomAction.Builder("repeat_" + repeat, "Repeat", repeatIcon).setExtras(repeatExtras).build())
                 .setState(isPlaying ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED, position, playbackRate, SystemClock.elapsedRealtime())
                 .build();
         _mediaSession.setPlaybackState(state);
         if(changeDur || changeRepeat || changeShuffle) {
-            _mediaSession.setMetadata(
-                    new MediaMetadataCompat.Builder()
-                            .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
-                            .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
-                            .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, getBitmapFromURL(artwork))
-                            .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, album)
-                            .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration)
-                            .build()
-            );
-            _mediaSession.setRepeatMode(repeat == 0 ? PlaybackStateCompat.REPEAT_MODE_NONE : repeat == 1 ? PlaybackStateCompat.REPEAT_MODE_ONE : PlaybackStateCompat.REPEAT_MODE_ALL);
-            _mediaSession.setShuffleMode(shuffling ? PlaybackStateCompat.SHUFFLE_MODE_ALL : PlaybackStateCompat.SHUFFLE_MODE_NONE);
-            if(changeRepeat || changeShuffle) mediaNotify();
+            refreshMediaSession();
         }
+        if(MyService.instance == null && WebAppInterface.aNoti != null) {
+            Intent myService = new Intent(mainActivity, MyService.class);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                view.getContext().startForegroundService(myService);
+            }
+        }
+    }
+
+    @SuppressLint("RestrictedApi")
+    private void refreshMediaSession()
+    {
+        final Bitmap albumArtBitmap = getBitmapFromURL(artwork);
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                _mediaSession.setMetadata(
+                        new MediaMetadataCompat.Builder()
+                                .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
+                                .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_TITLE, title)
+                                .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE, artist)
+                                .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION, album)
+                                .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
+                                .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, albumArtBitmap)
+                                .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, album)
+                                .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration)
+                                .build()
+                );
+                _mediaSession.setRepeatMode(repeat == 0 ? PlaybackStateCompat.REPEAT_MODE_NONE : repeat == 1 ? PlaybackStateCompat.REPEAT_MODE_ONE : PlaybackStateCompat.REPEAT_MODE_ALL);
+                _mediaSession.setShuffleMode(shuffling ? PlaybackStateCompat.SHUFFLE_MODE_ALL : PlaybackStateCompat.SHUFFLE_MODE_NONE);
+                mediaNotify();
+            }
+        });
     }
 
     @JavascriptInterface

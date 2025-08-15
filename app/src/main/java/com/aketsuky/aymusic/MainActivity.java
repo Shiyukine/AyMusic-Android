@@ -561,6 +561,7 @@ public class MainActivity extends AppCompatActivity {
         if(ScriptInjecter.haveBypassRequest(urlrewrite) || ((urlrewrite.contains("youtube.com") || urlrewrite.contains("google.com") || urlrewrite.contains("spotify.com") || ScriptInjecter.haveScriptForUrl(urlrewrite)) && (request.getMethod().equals("GET") || ScriptInjecter.haveInterceptAllWebRequest(urlrewrite)))) {
             try {
                 //String nhtml = new getData().execute(urlrewrite).get();
+                ScriptInjecter.setUrlLoaded(urlrewrite, 0);
                 HttpURLConnection connection = (HttpURLConnection) (new URL(urlrewrite)).openConnection();
                 connection.setConnectTimeout(5000);
                 connection.setReadTimeout(5000);
@@ -590,6 +591,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 connection.connect();
                 if(connection.getResponseCode() >= 300 && connection.getResponseCode() <= 399) {
+                    ScriptInjecter.setUrlLoaded(urlrewrite, 1);
                     if(!ScriptInjecter.haveInterceptAllWebRequest(urlrewrite)) return null;
                     Map<String, String> respH = new HashMap<>();
                     //for(String h : resp.headers().names()) {
@@ -732,6 +734,7 @@ public class MainActivity extends AppCompatActivity {
                     if(head.getKey().toLowerCase().equals("access-control-allow-origin")) respH.remove(head.getKey(), head.getValue());
                 }
                 respH.put("access-control-allow-origin", "*");
+                ScriptInjecter.setUrlLoaded(urlrewrite, 1);
                 //return new WebResourceResponse(mimeType, "UTF-8", resp.code(), !resp.message().equals("") ? resp.message() : "OK", respH, is);
                 return new WebResourceResponse(mimeType, "UTF-8", connection.getResponseCode(), connection.getResponseMessage(), respH, is);
             }
@@ -743,6 +746,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 else {
                     Log.e("shouldInterceptRequest", "can't retry after 3 tries");
+                    ScriptInjecter.setUrlLoaded(urlrewrite, 2);
                 }
                 return null;
             }

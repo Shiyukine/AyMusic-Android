@@ -24,13 +24,34 @@ import java.util.Set;
 public class ScriptInjecter {
     static HashMap<String, String> map = new HashMap<>();
     static ArrayList<JSONObject> overList = new ArrayList<>();
+    static HashMap<String, Integer> urlsLoaded = new HashMap<>();
 
     public static void addScript(String url, String script) {
         if(!map.containsKey(url)) {
             map.put(url, script);
+            urlsLoaded.put(url, 0);
         }
-        else
+        else {
             map.replace(url, script);
+            urlsLoaded.replace(url, 0);
+        }
+    }
+
+    public static int getUrlStatus(String url) {
+        return urlsLoaded.getOrDefault(url, 0);
+    }
+
+    public static void setUrlLoaded(String url, int status) {
+        //status: 0 - not loaded, 1 - loaded, 2 - failed
+        if(!urlsLoaded.containsKey(url)) {
+            urlsLoaded.replace(url, status);
+        }
+    }
+
+    public static void resetUrlsLoaded() {
+        for(Map.Entry<String, Integer> u : urlsLoaded.entrySet()) {
+            urlsLoaded.replace(u.getKey(), 0);
+        }
     }
 
     @OptIn(markerClass = UnstableApi.class)
@@ -121,6 +142,7 @@ public class ScriptInjecter {
         return strs;
     }
 
+    @OptIn(markerClass = UnstableApi.class)
     public static boolean haveBypassRequest(String url) {
         for(Map.Entry<String, Boolean> u : WebAppInterface.bpWR.entrySet()) {
             if(u.getValue()) {
