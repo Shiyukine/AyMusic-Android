@@ -848,7 +848,7 @@ public class MainActivity extends AppCompatActivity {
                     return WVshouldInterceptRequest(main, view, request, tryN + 1);
                 }
                 else {
-                    Log.e("shouldInterceptRequest", "can't retry after 3 tries");
+                    Log.e("shouldInterceptRequest", "can't retry after 3 tries " + urlrewrite);
                     ScriptInjecter.setUrlLoaded(urlrewrite, 2);
                 }
                 return null;

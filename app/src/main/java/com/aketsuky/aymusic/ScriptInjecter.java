@@ -44,6 +44,9 @@ public class ScriptInjecter {
     public static void setUrlLoaded(String url, int status) {
         //status: 0 - not loaded, 1 - loaded, 2 - failed
         if(!urlsLoaded.containsKey(url)) {
+            urlsLoaded.put(url, status);
+        }
+        else {
             urlsLoaded.replace(url, status);
         }
     }
