@@ -43,7 +43,10 @@ public class AutoService extends MediaBrowserServiceCompat {
     @Override
     public void onCreate() {
         super.onCreate();
-        setSessionToken(WebAppInterface._mediaSession.getSessionToken());
+        if(WebAppInterface._mediaSession != null) {
+            setSessionToken(WebAppInterface._mediaSession.getSessionToken());
+        }
+        else Log.e("AutoService", "Session is null");
     }
 
     @SuppressLint("RestrictedApi")
