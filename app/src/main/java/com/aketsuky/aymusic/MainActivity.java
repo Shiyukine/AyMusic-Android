@@ -10,6 +10,9 @@ import androidx.annotation.OptIn;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.core.view.OnApplyWindowInsetsListener;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
@@ -21,11 +24,17 @@ import androidx.webkit.ServiceWorkerControllerCompat;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ActivityManager;
+import android.app.AppOpsManager;
+import android.app.KeyguardManager;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.database.Cursor;
 import android.graphics.Color;
@@ -33,15 +42,19 @@ import android.graphics.Insets;
 import android.media.AudioAttributes;
 import android.media.AudioFocusRequest;
 import android.media.AudioManager;
+import android.media.session.MediaController;
+import android.media.session.MediaSessionManager;
 import android.media.session.PlaybackState;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowInsetsController;
@@ -83,6 +96,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Semaphore;
@@ -97,17 +111,95 @@ public class MainActivity extends AppCompatActivity {
             super ();
         }
 
+        public static final int OP_BACKGROUND_START_ACTIVITY = 10021;
+        public static final int OP_SHOW_WHEN_LOCKED = 10020;
+
+        @SuppressWarnings("JavaReflectionMemberAccess")
+        public static boolean isBackgroundStartActivityPermissionGranted(Context context) {
+            try {
+                AppOpsManager mgr = (AppOpsManager) context.getSystemService(Context.APP_OPS_SERVICE);
+                Method m = AppOpsManager.class.getMethod("checkOpNoThrow", int.class, int.class, String.class);
+                int result = (int) m.invoke(mgr, OP_BACKGROUND_START_ACTIVITY, android.os.Process.myUid(), context.getPackageName());
+                return result == AppOpsManager.MODE_ALLOWED;
+            } catch (Exception e) {
+                Log.d("Exception", e.toString());
+            }
+            return true;
+        }
+
+        @SuppressWarnings("JavaReflectionMemberAccess")
+        public static boolean isShowWhenLockedPermissionGranted(Context context) {
+            try {
+                AppOpsManager mgr = (AppOpsManager) context.getSystemService(Context.APP_OPS_SERVICE);
+                Method m = AppOpsManager.class.getMethod("checkOpNoThrow", int.class, int.class, String.class);
+                int result = (int) m.invoke(mgr, OP_SHOW_WHEN_LOCKED, android.os.Process.myUid(), context.getPackageName());
+                return result == AppOpsManager.MODE_ALLOWED;
+            } catch (Exception e) {
+                Log.d("Exception", e.toString());
+            }
+            return true;
+        }
+
+        static int first = 0;
+
         @SuppressLint("RestrictedApi")
         @OptIn(markerClass = UnstableApi.class)
         @Override
         public void onReceive(Context context, Intent intent) {
             String intentAction = intent.getAction();
-            Log.e("fdssgdsfg", intentAction);
+            Log.i("fdssgdsfg", "intentAction: " + intentAction);
             if (!Intent.ACTION_MEDIA_BUTTON.equals(intentAction)) {
-                Log.i ("fdssgdsfg", "no media button information");
-                return;
+                if(first == 0) {
+                    KeyguardManager myKM = (KeyguardManager) context.getSystemService(Context.KEYGUARD_SERVICE);
+                    if (!isBackgroundStartActivityPermissionGranted(context) || (myKM.inKeyguardRestrictedInputMode() && !isShowWhenLockedPermissionGranted(context))) {
+                        int importance = NotificationManager.IMPORTANCE_HIGH;
+                        String CHANNEL_ID = "AyMusicBgHelper";
+                        NotificationChannel channel = null;
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            channel = new NotificationChannel(CHANNEL_ID, "AyMusic background helper", importance);
+                            NotificationManager notificationManager = context.getSystemService(NotificationManager.class);
+                            notificationManager.createNotificationChannel(channel);
+                            Intent intentt = null;
+                            if("xiaomi".equals(Build.MANUFACTURER.toLowerCase(Locale.ROOT))) {
+                                intentt = new Intent("miui.intent.action.APP_PERM_EDITOR");
+                                intentt.setClassName("com.miui.securitycenter",
+                                        "com.miui.permcenter.permissions.PermissionsEditorActivity");
+                                intentt.putExtra("extra_pkgname", context.getPackageName());
+                            }
+                            else {
+                                intentt = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                                Uri uri = Uri.fromParts("package", context.getPackageName(), null);
+                                intentt.setData(uri);
+                            }
+                            PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intentt, PendingIntent.FLAG_IMMUTABLE);
+                            String text = myKM.inKeyguardRestrictedInputMode() && !isShowWhenLockedPermissionGranted(context) ? "You must allow \"Show on Lock screen\" and \"Display pop-up in background\" to use AyMusic in background. Click here to allow." : "You must allow \"Display pop-up in background\" to use AyMusic in background. Click here to allow.";
+                            NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
+                                    .setSmallIcon(R.drawable.ic_stat_name)
+                                    .setContentTitle("AyMusic")
+                                    .setContentText(text)
+                                    .setStyle(new NotificationCompat.BigTextStyle().bigText(text))
+                                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                                    .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                                    .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
+                                    .setContentIntent(pendingIntent)
+                                    .setAutoCancel(true);
+                            NotificationManagerCompat.from(context).notify(2, builder.build());
+                        }
+                    }
+                    else {
+                        Log.i("fdssgdsfg", "no media button information, launching app instead.");
+                        Intent intentt = new Intent(context.getApplicationContext(), MainActivity.class);
+                        intentt.putExtra("enableAutoPlay", true);
+                        intentt.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        context.getApplicationContext().startActivity(intentt);
+                    }
+                }
+                first++;
+                if(first == 2) first = 0;
             }
-            WebAppInterface._mediaSession.getController().getTransportControls().play();
+            else {
+                WebAppInterface._mediaSession.getController().getTransportControls().play();
+            }
         }
     }
 
@@ -160,9 +252,6 @@ public class MainActivity extends AppCompatActivity {
         } else {
             registerReceiver(mNoisyReceiver, filter);
         }
-        AudioManager mAudioManager =  (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-        ComponentName mReceiverComponent = new ComponentName(this,MediaButtonIntentReceiver.class);
-        mAudioManager.registerMediaButtonEventReceiver(mReceiverComponent);
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
             actionBar.hide();
@@ -207,8 +296,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPermissionRequest(PermissionRequest request) {
                 String[] resources = request.getResources();
-                for (int i = 0; i < resources.length; i++) {
-                    if (PermissionRequest.RESOURCE_PROTECTED_MEDIA_ID.equals(resources[i])) {
+                for (String resource : resources) {
+                    if (PermissionRequest.RESOURCE_PROTECTED_MEDIA_ID.equals(resource)) {
                         request.grant(resources);
                         return;
                     }
@@ -229,6 +318,9 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onPageFinished(WebView view, String url) {
+                if(getIntent().getBooleanExtra("enableAutoPlay", false)) {
+                    view.evaluateJavascript("window.enableFirstAutoPlay = true", null);
+                }
                 view.evaluateJavascript("if(!loaded) {" +
                         "var intev = setInterval(() => {\n" +
                         "            if(!loaded) {\n" +
@@ -387,6 +479,17 @@ public class MainActivity extends AppCompatActivity {
         webViewSettings2.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36");
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView2,true);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+
+                ActivityCompat.requestPermissions(
+                        this,
+                        new String[]{android.Manifest.permission.POST_NOTIFICATIONS},
+                        101
+                );
+            }
+        }
     }
 
     public static void setWindowFlag(Activity activity, final int bits, boolean on) {

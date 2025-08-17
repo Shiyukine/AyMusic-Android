@@ -40,6 +40,8 @@ import androidx.media3.session.CommandButton;
 import androidx.media3.session.legacy.MediaMetadataCompat;
 import androidx.media3.session.legacy.MediaSessionCompat;
 import androidx.media3.session.legacy.PlaybackStateCompat;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
 
 import org.json.JSONException;
 
@@ -87,10 +89,8 @@ public class WebAppInterface {
                 .build();
         _mediaSession.setPlaybackState(state);
         //
-        PendingIntent pi = PendingIntent.getBroadcast(mContext, 0, new Intent(mainActivity, MainActivity.MediaButtonIntentReceiver.class), PendingIntent.FLAG_IMMUTABLE);
-        if (Build.VERSION.SDK_INT >= 31) {
-            _mediaSession.setMediaButtonReceiver(pi);
-        }
+        PendingIntent pi = PendingIntent.getBroadcast(mainActivity, 0, new Intent(mainActivity, MainActivity.MediaButtonIntentReceiver.class), PendingIntent.FLAG_IMMUTABLE);
+        _mediaSession.setMediaButtonReceiver(pi);
         Handler mainHandler = new Handler(mContext.getMainLooper());
         _mediaSession.setCallback(new MediaSessionCallback(view, _mediaSession), mainHandler);
         MediaButtonIntentReceiverNotification receiver = new MediaButtonIntentReceiverNotification();
@@ -104,47 +104,6 @@ public class WebAppInterface {
         ContextCompat.registerReceiver(mContext, receiver, new IntentFilter("repeat_0"), ContextCompat.RECEIVER_NOT_EXPORTED);
         ContextCompat.registerReceiver(mContext, receiver, new IntentFilter("repeat_1"), ContextCompat.RECEIVER_NOT_EXPORTED);
         ContextCompat.registerReceiver(mContext, receiver, new IntentFilter("repeat_2"), ContextCompat.RECEIVER_NOT_EXPORTED);
-
-        BroadcastReceiver bluetoothReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                String action = intent.getAction();
-
-                if (BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED.equals(action)) {
-                    int state = intent.getIntExtra(BluetoothProfile.EXTRA_STATE, -1);
-
-                    if (state == BluetoothProfile.STATE_CONNECTED) {
-                        Log.d("Bluetooth", "A2DP connected - refreshing metadata");
-                        // Bluetooth A2DP connected - refresh metadata after a short delay
-                        new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                            // Force refresh metadata regardless of changeSession logic
-                            refreshMediaSession();
-                        }, 1000); // 1 second delay to ensure connection is fully established
-                    }
-                }
-
-                // Optional: Handle other Bluetooth events
-                else if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
-                    Log.d("Bluetooth", "ACL connected");
-                    BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                    // Handle general Bluetooth device connection
-                }
-            }
-        };
-
-        IntentFilter filter = new IntentFilter();
-
-        // Listen for A2DP (Advanced Audio Distribution Profile) connection changes
-        filter.addAction(BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED);
-
-        // Optional: Also listen for general Bluetooth adapter state changes
-        filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
-
-        // Optional: Listen for ACL (Access Control List) connection events
-        filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
-        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
-
-        ContextCompat.registerReceiver(mContext, receiver, filter, ContextCompat.RECEIVER_EXPORTED);
     }
 
     @JavascriptInterface
@@ -203,11 +162,12 @@ public class WebAppInterface {
         Handler mainHandler = new Handler(mContext.getMainLooper());
 
         Runnable myRunnable = new Runnable() {
+            @SuppressLint("SetJavaScriptEnabled")
             @Override
             public void run() {
                 WebView wv = mainActivity.findViewById(R.id.bgwb);
-                wv.loadUrl(url);
                 wv.getSettings().setJavaScriptEnabled(true);
+                wv.loadUrl(url);
             } // This is your code
         };
         mainHandler.post(myRunnable);
@@ -634,7 +594,10 @@ public class WebAppInterface {
         }
         if(MyService.instance == null && WebAppInterface.aNoti != null) {
             Intent myService = new Intent(mainActivity, MyService.class);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                OneTimeWorkRequest request = new OneTimeWorkRequest.Builder ( BackupWorker.class ).addTag ( "BACKUP_WORKER_TAG" ).build ();
+                WorkManager.getInstance ( view.getContext() ).enqueue ( request );
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 view.getContext().startForegroundService(myService);
             }
         }
