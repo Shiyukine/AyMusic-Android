@@ -243,6 +243,8 @@ public class MainActivity extends AppCompatActivity {
             public void onReceive(Context context, Intent intent) {
                 if( WebAppInterface._mediaSession != null) {
                     WebAppInterface._mediaSession.getController().getTransportControls().pause();
+                    //fix debounce
+                    WebAppInterface._mediaSession.getController().getTransportControls().pause();
                 }
             }
         };
