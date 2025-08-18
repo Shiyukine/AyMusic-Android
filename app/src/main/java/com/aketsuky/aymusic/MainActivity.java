@@ -20,6 +20,11 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.media3.common.util.UnstableApi;
 import androidx.webkit.ServiceWorkerClientCompat;
 import androidx.webkit.ServiceWorkerControllerCompat;
+import androidx.webkit.WebNavigationClient;
+import androidx.webkit.WebSettingsCompat;
+import androidx.webkit.WebViewCompat;
+import androidx.webkit.WebViewFeature;
+import androidx.webkit.WebViewMediaIntegrityApiStatusConfig;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -372,6 +377,14 @@ public class MainActivity extends AppCompatActivity {
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView,true);
         webView.addJavascriptInterface(new WebAppInterface(this, webView, this), "boundobject");
         webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.WEBVIEW_MEDIA_INTEGRITY_API_STATUS)) {
+            // Create a configuration that disables the Media Integrity API by default
+            WebViewMediaIntegrityApiStatusConfig config =
+                    new WebViewMediaIntegrityApiStatusConfig.Builder(
+                            WebViewMediaIntegrityApiStatusConfig.WEBVIEW_MEDIA_INTEGRITY_API_DISABLED
+                    ).build();
+            WebSettingsCompat.setWebViewMediaIntegrityApiStatus(webViewSettings, config);
+        }
         webView.loadUrl("https://myapp/index.html");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)

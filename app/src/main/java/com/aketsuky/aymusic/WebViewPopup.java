@@ -2,6 +2,9 @@ package com.aketsuky.aymusic;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.webkit.WebSettingsCompat;
+import androidx.webkit.WebViewFeature;
+import androidx.webkit.WebViewMediaIntegrityApiStatusConfig;
 
 import android.content.Intent;
 import android.content.res.AssetManager;
@@ -109,14 +112,37 @@ public class WebViewPopup extends AppCompatActivity {
         //webViewSettings.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36");
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView,true);
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.WEBVIEW_MEDIA_INTEGRITY_API_STATUS)) {
+            // Create a configuration that disables the Media Integrity API by default
+            WebViewMediaIntegrityApiStatusConfig config =
+                    new WebViewMediaIntegrityApiStatusConfig.Builder(
+                            WebViewMediaIntegrityApiStatusConfig.WEBVIEW_MEDIA_INTEGRITY_API_DISABLED
+                    ).build();
+            WebSettingsCompat.setWebViewMediaIntegrityApiStatus(webViewSettings, config);
+        }
         webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
         webView.loadUrl(baseUrl);
     }
 
     @Override
+    public void onBackPressed() {
+        WebView view = findViewById(R.id.webview);
+        if(view.canGoBack()) {
+            view.goBack();
+        }
+        else {
+            super.onBackPressed();
+        }
+    }
+
+    @Override
     protected void onDestroy() {
-        WebView webView = findViewById(R.id.webview);
-        webView.destroy();
+        try {
+            WebView webView = findViewById(R.id.webview);
+            webView.destroy();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         super.onDestroy();
     }
 }

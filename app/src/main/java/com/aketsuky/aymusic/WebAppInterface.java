@@ -48,6 +48,9 @@ import androidx.media3.session.CommandButton;
 import androidx.media3.session.legacy.MediaMetadataCompat;
 import androidx.media3.session.legacy.MediaSessionCompat;
 import androidx.media3.session.legacy.PlaybackStateCompat;
+import androidx.webkit.WebSettingsCompat;
+import androidx.webkit.WebViewFeature;
+import androidx.webkit.WebViewMediaIntegrityApiStatusConfig;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
 
@@ -284,6 +287,14 @@ public class WebAppInterface {
                 webViewSettings2.setJavaScriptEnabled(true);
                 CookieManager.getInstance().setAcceptCookie(true);
                 CookieManager.getInstance().setAcceptThirdPartyCookies(webView2,true);
+                if (WebViewFeature.isFeatureSupported(WebViewFeature.WEBVIEW_MEDIA_INTEGRITY_API_STATUS)) {
+                    // Create a configuration that disables the Media Integrity API by default
+                    WebViewMediaIntegrityApiStatusConfig config =
+                            new WebViewMediaIntegrityApiStatusConfig.Builder(
+                                    WebViewMediaIntegrityApiStatusConfig.WEBVIEW_MEDIA_INTEGRITY_API_DISABLED
+                            ).build();
+                    WebSettingsCompat.setWebViewMediaIntegrityApiStatus(webViewSettings2, config);
+                }
                 webView2.loadUrl(url);
             } // This is your code
         };
