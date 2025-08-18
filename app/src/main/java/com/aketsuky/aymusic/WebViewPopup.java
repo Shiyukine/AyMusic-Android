@@ -77,13 +77,11 @@ public class WebViewPopup extends AppCompatActivity {
                     Runnable myRunnable = new Runnable() {
                         @Override
                         public void run() {
-                            view.stopLoading();
-                            view.loadUrl("about:blank");
-                            view.getSettings().setJavaScriptEnabled(false);
+                            webView.destroy();
+                            finish();
                         } // This is your code
                     };
                     mainHandler.post(myRunnable);
-                    finish();
                 }
             }
 
@@ -113,5 +111,12 @@ public class WebViewPopup extends AppCompatActivity {
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView,true);
         webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
         webView.loadUrl(baseUrl);
+    }
+
+    @Override
+    protected void onDestroy() {
+        WebView webView = findViewById(R.id.webview);
+        webView.destroy();
+        super.onDestroy();
     }
 }

@@ -6,13 +6,16 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <WebView
-        android:id="@+id/bgwb"
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         tools:layout_editor_absoluteX="127dp"
         tools:layout_editor_absoluteY="338dp"
-        tools:visibility="invisible" />
+        tools:visibility="invisible"
+        android:id="@+id/fl">
+
+    </FrameLayout>
+
 
     <com.aketsuky.aymusic.MediaWebView
         android:id="@+id/wb"

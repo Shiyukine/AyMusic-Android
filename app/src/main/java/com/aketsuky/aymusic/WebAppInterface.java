@@ -31,8 +31,16 @@ import android.os.SystemClock;
 import android.util.Log;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
+import android.webkit.PermissionRequest;
+import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.widget.FrameLayout;
 
+import androidx.annotation.OptIn;
 import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
 import androidx.media3.common.util.UnstableApi;
@@ -165,9 +173,118 @@ public class WebAppInterface {
             @SuppressLint("SetJavaScriptEnabled")
             @Override
             public void run() {
-                WebView wv = mainActivity.findViewById(R.id.bgwb);
-                wv.getSettings().setJavaScriptEnabled(true);
-                wv.loadUrl(url);
+                WebView webView2 = new WebView(mainActivity);
+                FrameLayout fl = mainActivity.findViewById(R.id.fl);
+                fl.addView(webView2);
+                webView2.setWebChromeClient(new WebChromeClient() {
+                    @Override
+                    public void onPermissionRequest(PermissionRequest request) {
+                        String[] resources = request.getResources();
+                        for (int i = 0; i < resources.length; i++) {
+                            if (PermissionRequest.RESOURCE_PROTECTED_MEDIA_ID.equals(resources[i])) {
+                                request.grant(resources);
+                                return;
+                            }
+                        }
+
+                        super.onPermissionRequest(request);
+                    }
+                });
+                webView2.getSettings().setAllowFileAccess(true);
+                webView2.getSettings().setAllowContentAccess(true);
+                webView2.setWebViewClient(new WebViewClient() {
+                    @Override
+                    public void onLoadResource(WebView view, String url) {
+                        // TODO Auto-generated method stub
+                        //Log.e("ddsqqsd", url);
+                        view.evaluateJavascript("var _scr = {};\n" +
+                                "        for (const key in screen) {\n" +
+                                "            switch (key) {\n" +
+                                "                case \"width\":\n" +
+                                "                    _scr[key] = 1920;\n" +
+                                "                    break;\n" +
+                                "                case \"height\":\n" +
+                                "                    _scr[key] = 1080;\n" +
+                                "                    break;\n" +
+                                "                case \"availWidth\":\n" +
+                                "                    _scr[key] = 1920;\n" +
+                                "                    break;\n" +
+                                "                case \"availHeight\":\n" +
+                                "                    _scr[key] = 1080;\n" +
+                                "                    break;\n" +
+                                "                default:\n" +
+                                "                    _scr[key] = screen[key];\n" +
+                                "                    break;\n" +
+                                "            }\n" +
+                                "        }\n" +
+                                "        window.screen = _scr;", null);
+                        super.onLoadResource(view, url);
+                    }
+
+                    @Override
+                    public void onPageFinished(WebView view, String url) {
+                        CookieManager.getInstance().setAcceptCookie(true);
+                        CookieManager.getInstance().acceptCookie();
+                        CookieManager.getInstance().flush();
+                    }
+
+                    boolean debounceSpotify = false;
+
+                    @OptIn(markerClass = UnstableApi.class)
+                    @Override
+                    public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                        if (request.getUrl().toString().contains("https://api-auth.soundcloud.com/oauth/authorize")) {
+                            Log.e("fdqfsdfsdq", " " + request.getUrl().getQueryParameter("client_id"));
+                            WebAppInterface.clientsToken.put("Soundcloud", request.getUrl().getQueryParameter("client_id"));
+                            Handler mainHandler = new Handler(mainActivity.getMainLooper());
+
+                            Runnable myRunnable = new Runnable() {
+                                @Override
+                                public void run() {
+                                    webView2.destroy();
+                                    fl.removeView(webView2);
+                                } // This is your code
+                            };
+                            mainHandler.post(myRunnable);
+                        }
+                        if(request.getUrl().toString().contains("spotify.com")) {
+                            for (Map.Entry<String, String> head : request.getRequestHeaders().entrySet()) {
+                                if (head.getKey().toLowerCase().equals("authorization".toLowerCase())) {
+                                    Log.e("fdqfsdfsdq", head.getValue() + " " + request.getUrl().toString());
+                                    WebAppInterface.clientsToken.put("Spotify", head.getValue().split("Bearer ")[1]);
+                                    if(request.getUrl().toString().contains("api-partner.spotify.com/pathfinder") && debounceSpotify) {
+                                        Handler mainHandler = new Handler(mainActivity.getMainLooper());
+
+                                        Runnable myRunnable = new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                webView2.destroy();
+                                                fl.removeView(webView2);
+                                                debounceSpotify = false;
+                                            } // This is your code
+                                        };
+                                        mainHandler.post(myRunnable);
+                                    }
+                                    debounceSpotify = true;
+                                }
+                            }
+                        }
+                        return super.shouldInterceptRequest(view, request);
+                    }
+                });
+                WebSettings webViewSettings2 = webView2.getSettings();
+                webViewSettings2.setJavaScriptCanOpenWindowsAutomatically(false);
+                webViewSettings2.setAllowUniversalAccessFromFileURLs(true);
+                webViewSettings2.setAllowContentAccess(true);
+                webViewSettings2.setAllowFileAccessFromFileURLs(true);
+                webViewSettings2.setDomStorageEnabled(true);
+                webViewSettings2.setDatabaseEnabled(true);
+                webViewSettings2.setMediaPlaybackRequiresUserGesture(false);
+                webViewSettings2.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36");
+                webViewSettings2.setJavaScriptEnabled(true);
+                CookieManager.getInstance().setAcceptCookie(true);
+                CookieManager.getInstance().setAcceptThirdPartyCookies(webView2,true);
+                webView2.loadUrl(url);
             } // This is your code
         };
         mainHandler.post(myRunnable);
@@ -553,10 +670,17 @@ public class WebAppInterface {
     @SuppressLint("RestrictedApi")
     @JavascriptInterface
     public void sessionChangeMediaMetadata(String title, String album, String artist, String artwork) {
+        boolean changeTitle = !title.equals(this.title);
+        boolean changeAlbum = !album.equals(this.album);
+        boolean changeArtist = !artist.equals(this.artist);
+        boolean changeArtwork = !artwork.equals(this.artwork);
         this.title = title;
         this.album = album;
         this.artist = artist;
         this.artwork = artwork;
+        if(changeTitle || changeAlbum || changeArtist || changeArtwork) {
+            refreshMediaSession();
+        }
     }
 
     @SuppressLint("RestrictedApi")
