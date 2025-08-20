@@ -283,7 +283,7 @@ public class WebAppInterface {
                 webViewSettings2.setDomStorageEnabled(true);
                 webViewSettings2.setDatabaseEnabled(true);
                 webViewSettings2.setMediaPlaybackRequiresUserGesture(false);
-                webViewSettings2.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36");
+                webViewSettings2.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36");
                 webViewSettings2.setJavaScriptEnabled(true);
                 CookieManager.getInstance().setAcceptCookie(true);
                 CookieManager.getInstance().setAcceptThirdPartyCookies(webView2,true);

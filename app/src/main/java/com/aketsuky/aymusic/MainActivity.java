@@ -372,7 +372,7 @@ public class MainActivity extends AppCompatActivity {
         webViewSettings.setRenderPriority(WebSettings.RenderPriority.HIGH);
         webViewSettings.setBuiltInZoomControls(false);
         webView.setWebContentsDebuggingEnabled(true);
-        webViewSettings.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36");
+        webViewSettings.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36");
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView,true);
         webView.addJavascriptInterface(new WebAppInterface(this, webView, this), "boundobject");
@@ -593,7 +593,7 @@ public class MainActivity extends AppCompatActivity {
                     //build.addHeader(head.getKey(), head.getValue());
                 }
                 if(view == null) {
-                    connection.setRequestProperty("user-agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36");
+                    connection.setRequestProperty("user-agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36");
                 }
                 String cookieUrl = "https://" + request.getUrl().getHost().replace("www.", "") + "/";
                 if(CookieManager.getInstance().getCookie(urlrewrite) != null) {
