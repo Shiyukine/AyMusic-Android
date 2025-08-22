@@ -70,6 +70,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @UnstableApi
 public class WebAppInterface {
@@ -283,7 +285,16 @@ public class WebAppInterface {
                 webViewSettings2.setDomStorageEnabled(true);
                 webViewSettings2.setDatabaseEnabled(true);
                 webViewSettings2.setMediaPlaybackRequiresUserGesture(false);
-                webViewSettings2.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36");
+                String ua = webViewSettings2.getUserAgentString();
+                Pattern pattern = Pattern.compile("Chrome/([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)");
+                Matcher matcher = pattern.matcher(ua);
+                if (matcher.find()) {
+                    String chromeVersion = matcher.group(1);
+                    Log.i("UA", "Chrome version: " + chromeVersion);
+                    webViewSettings2.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/" + chromeVersion + " Safari/537.36");
+                } else {
+                    Log.e("UA", "Chrome version not found.");
+                }
                 webViewSettings2.setJavaScriptEnabled(true);
                 CookieManager.getInstance().setAcceptCookie(true);
                 CookieManager.getInstance().setAcceptThirdPartyCookies(webView2,true);

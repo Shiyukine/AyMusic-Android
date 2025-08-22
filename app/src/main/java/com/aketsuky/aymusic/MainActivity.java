@@ -105,6 +105,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Semaphore;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static android.content.ContentValues.TAG;
 
@@ -372,7 +374,16 @@ public class MainActivity extends AppCompatActivity {
         webViewSettings.setRenderPriority(WebSettings.RenderPriority.HIGH);
         webViewSettings.setBuiltInZoomControls(false);
         webView.setWebContentsDebuggingEnabled(true);
-        webViewSettings.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36");
+        String ua = webViewSettings.getUserAgentString();
+        Pattern pattern = Pattern.compile("Chrome/([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)");
+        Matcher matcher = pattern.matcher(ua);
+        if (matcher.find()) {
+            String chromeVersion = matcher.group(1);
+            Log.i("UA", "Chrome version: " + chromeVersion);
+            webViewSettings.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/" + chromeVersion + " Safari/537.36");
+        } else {
+            Log.e("UA", "Chrome version not found.");
+        }
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView,true);
         webView.addJavascriptInterface(new WebAppInterface(this, webView, this), "boundobject");

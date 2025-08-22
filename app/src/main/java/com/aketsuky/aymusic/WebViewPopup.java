@@ -35,6 +35,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -92,8 +94,18 @@ public class WebViewPopup extends AppCompatActivity {
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
                 if(url.contains("google"))
                     view.getSettings().setUserAgentString("Chrome");
-                else
-                    view.getSettings().setUserAgentString("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36");
+                else {
+                    String ua = view.getSettings().getUserAgentString();
+                    Pattern pattern = Pattern.compile("Chrome/([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)");
+                    Matcher matcher = pattern.matcher(ua);
+                    if (matcher.find()) {
+                        String chromeVersion = matcher.group(1);
+                        Log.i("UA", "Chrome version: " + chromeVersion);
+                        view.getSettings().setUserAgentString("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/" + chromeVersion + " Safari/537.36");
+                    } else {
+                        Log.e("UA", "Chrome version not found.");
+                    }
+                }
                 //super.onPageStarted(view, url, favicon);
             }
         });
@@ -109,7 +121,6 @@ public class WebViewPopup extends AppCompatActivity {
         webViewSettings.setCacheMode(WebSettings.LOAD_NO_CACHE);
         webViewSettings.setMediaPlaybackRequiresUserGesture(false);
         webViewSettings.setRenderPriority(WebSettings.RenderPriority.HIGH);
-        //webViewSettings.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36");
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView,true);
         if (WebViewFeature.isFeatureSupported(WebViewFeature.WEBVIEW_MEDIA_INTEGRITY_API_STATUS)) {
