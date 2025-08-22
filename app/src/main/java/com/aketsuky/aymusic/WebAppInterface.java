@@ -238,7 +238,7 @@ public class WebAppInterface {
                     @OptIn(markerClass = UnstableApi.class)
                     @Override
                     public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-                        if (request.getUrl().toString().contains("https://api-auth.soundcloud.com/oauth/authorize")) {
+                        if (request.getUrl().toString().contains("api-auth.soundcloud.com/oauth/authorize") || (request.getUrl().toString().contains("api-v2.soundcloud.com") && request.getUrl().toString().contains("client_id="))) {
                             Log.e("fdqfsdfsdq", " " + request.getUrl().getQueryParameter("client_id"));
                             WebAppInterface.clientsToken.put("Soundcloud", request.getUrl().getQueryParameter("client_id"));
                             Handler mainHandler = new Handler(mainActivity.getMainLooper());
