@@ -54,7 +54,9 @@ import androidx.webkit.WebViewMediaIntegrityApiStatusConfig;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
 
+import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
@@ -358,9 +360,15 @@ public class WebAppInterface {
     }
 
     @JavascriptInterface
-    @SuppressLint({"StaticFieldLeak"})
     public String httpRequestPOST(String url, String data, String contentType) {
+        return httpRequestPOST(url, data, contentType, "[]");
+    }
+
+    @JavascriptInterface
+    @SuppressLint({"StaticFieldLeak"})
+    public String httpRequestPOST(String url, String data, String contentType, String listHeaders) {
         try {
+            JSONArray headers = new JSONArray(listHeaders);
             String urlDom = new URL(url).getHost();
             if(urlDom.split("\\.").length > 2) {
                 String tmp = "";
@@ -379,6 +387,10 @@ public class WebAppInterface {
             connection.setDoOutput(true);
             connection.setRequestMethod("POST");
             connection.addRequestProperty("Content-Type", contentType);
+            for(int i = 0; i < headers.length(); i++) {
+                JSONObject header = headers.getJSONObject(i);
+                connection.addRequestProperty(header.getString("name"), header.getString("value"));
+            }
             OutputStream os = connection.getOutputStream();
             OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8);
             osw.write(data);
