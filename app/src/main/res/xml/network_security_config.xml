@@ -3,6 +3,7 @@
     <base-config>
         <trust-anchors>
             <certificates src="@raw/shiyuweb"/>
+            <certificates src="@raw/isrgrx2"/>
             <certificates src="system"/>
         </trust-anchors>
     </base-config>
