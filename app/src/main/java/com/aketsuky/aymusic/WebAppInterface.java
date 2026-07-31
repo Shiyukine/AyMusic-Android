@@ -72,8 +72,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 @UnstableApi
 public class WebAppInterface {
@@ -314,48 +319,38 @@ public class WebAppInterface {
         mainHandler.post(myRunnable);
     }
 
-    HashMap<String, String> requestGET = new HashMap<>();
+    @JavascriptInterface
+    public String httpRequestGET(String url) {
+        return httpRequestGET(url, "[]");
+    }
 
     @JavascriptInterface
     @SuppressLint("StaticFieldLeak")
-    public void httpRequestGET(String url) {
-        if(!requestGET.containsKey(url)) {
-            try {
-                new getData() {
+    public String httpRequestGET(String url, String listHeaders) {
+        try {
+            OkHttpClient client = new OkHttpClient();
+            /*try {
+                client.networkInterceptors().add(new Interceptor() {
                     @Override
-                    protected void onPostExecute(String s) {
-                        super.onPostExecute(s);
-                        if(s != null && !s.equals("")) {
-                            view.evaluateJavascript("window.listeners.httpRequestCallback(`" + s.replace("\\", "\\\\").replace("${", "\\${").replace("`", "\\`") + "`)", null);
-                        }
-                        else {
-                            view.evaluateJavascript("window.listeners.httpRequestCallback('')", null);
-                        }
+                    public Response intercept(Interceptor.Chain chain) throws IOException {
+                        return chain.proceed(chain.request());
                     }
-                }.execute(url);
-                /*OkHttpClient client = new OkHttpClient();
-                /*try {
-                    client.networkInterceptors().add(new Interceptor() {
-                        @Override
-                        public Response intercept(Interceptor.Chain chain) throws IOException {
-                            return chain.proceed(chain.request());
-                        }
-                    });
-                } catch (Exception e) {
-                }*
-                Request.Builder build = new Request.Builder().url(url);
-                Request req = build.build();
-                Response resp = client.newCall(req).execute();
-                String nhtml = Objects.requireNonNull(resp.body()).string();
-                requestGET.put(url, nhtml);
-                return nhtml;*/
+                });
             } catch (Exception e) {
-                e.printStackTrace();
-                view.evaluateJavascript("window.listeners.httpRequestCallback('')", null);
+            }*/
+            Request.Builder build = new Request.Builder().url(url);
+            JSONArray headers = new JSONArray(listHeaders);
+            for(int i = 0; i < headers.length(); i++) {
+                JSONObject header = headers.getJSONObject(i);
+                build.addHeader(header.getString("name"), header.getString("value"));
             }
-        }
-        else {
-            view.evaluateJavascript("window.listeners.httpRequestCallback(`" + requestGET.get(url).replace("\\", "\\\\").replace("${", "\\${").replace("`", "\\`") + "`)", null);
+            Request req = build.build();
+            Response resp = client.newCall(req).execute();
+            String nhtml = Objects.requireNonNull(resp.body()).string();
+            return nhtml;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "error on android, see catlog";
         }
     }
 
@@ -425,7 +420,7 @@ public class WebAppInterface {
             return result;
         } catch (Exception var15) {
             var15.printStackTrace();
-            return "mmh";
+            return "error on android, see catlog";
         }
     }
 
