@@ -322,7 +322,7 @@ public class MainActivity extends AppCompatActivity {
             @Nullable
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-                return WVshouldInterceptRequest(main, view, request, 0);
+                return WVshouldInterceptRequest(main, view, request);
             }
 
             @Override
@@ -353,7 +353,7 @@ public class MainActivity extends AppCompatActivity {
         swController.setServiceWorkerClient(new ServiceWorkerClientCompat() {
             @Override
             public WebResourceResponse shouldInterceptRequest(@NonNull WebResourceRequest request) {
-                return WVshouldInterceptRequest(main, null, request, 0);
+                return WVshouldInterceptRequest(main, null, request);
             }
         });
         //load();
@@ -497,7 +497,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @OptIn(markerClass = UnstableApi.class)
-    private WebResourceResponse WVshouldInterceptRequest(MainActivity main, WebView view, WebResourceRequest request, int tryN) {
+    private WebResourceResponse WVshouldInterceptRequest(MainActivity main, WebView view, WebResourceRequest request) {
         if (request.getUrl() != null && !Adblock.isAGoodUrl(request.getUrl().toString()))
             return new WebResourceResponse("text/html", "UTF-8", new ByteArrayInputStream("<p></p>".getBytes()));
         String urlrewrite = request.getUrl().toString();
@@ -759,20 +759,9 @@ public class MainActivity extends AppCompatActivity {
                 //return new WebResourceResponse(mimeType, "UTF-8", resp.code(), !resp.message().equals("") ? resp.message() : "OK", respH, is);
                 return new WebResourceResponse(mimeType, "UTF-8", connection.getResponseCode(), connection.getResponseMessage(), respH, is);
             }
-            catch (SocketException e) {
-                e.printStackTrace();
-                if(tryN < 3) {
-                    Log.e("shouldInterceptRequest", "retrying");
-                    return WVshouldInterceptRequest(main, view, request, tryN + 1);
-                }
-                else {
-                    Log.e("shouldInterceptRequest", "can't retry after 3 tries " + urlrewrite);
-                    ScriptInjecter.setUrlLoaded(urlrewrite, 2);
-                }
-                return null;
-            }
             catch (Exception e) {
                 e.printStackTrace();
+                ScriptInjecter.setUrlLoaded(urlrewrite, 2);
                 return null;
             }
         }
