@@ -214,6 +214,7 @@ public class MainActivity extends AppCompatActivity {
     static MediaWebView actualWb;
     ActivityResultLauncher<Intent> mGetContent;
     AudioManager.OnAudioFocusChangeListener amOn;
+    String userAgent = "";
 
     @Override
     public Intent registerReceiver(@Nullable BroadcastReceiver receiver, IntentFilter filter) {
@@ -380,7 +381,8 @@ public class MainActivity extends AppCompatActivity {
         if (matcher.find()) {
             String chromeVersion = matcher.group(1);
             Log.i("UA", "Chrome version: " + chromeVersion);
-            webViewSettings.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/" + chromeVersion + " Safari/537.36");
+            userAgent = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/" + chromeVersion + " Safari/537.36";
+            webViewSettings.setUserAgentString(userAgent);
         } else {
             Log.e("UA", "Chrome version not found.");
         }
@@ -604,7 +606,7 @@ public class MainActivity extends AppCompatActivity {
                     //build.addHeader(head.getKey(), head.getValue());
                 }
                 if(view == null) {
-                    connection.setRequestProperty("user-agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36");
+                    connection.setRequestProperty("user-agent", userAgent);
                 }
                 String cookieUrl = "https://" + request.getUrl().getHost().replace("www.", "") + "/";
                 if(CookieManager.getInstance().getCookie(urlrewrite) != null) {

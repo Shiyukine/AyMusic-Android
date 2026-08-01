@@ -19,13 +19,20 @@ public class Updates {
 
     public static void searchUpdates(Context mContext, WebView view, MainActivity mainActivity)
     {
+        String jsonUrl;
+        //if Android 10 or more
+        if(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q)
+            jsonUrl = Updates.servUrl + "/dl/AyMusic/update_android_10.json";
+        else {
+            jsonUrl = Updates.servUrl + "/dl/AyMusic/update_android.json";
+        }
         Handler mainHandler = new Handler(mContext.getMainLooper());
         Runnable myRunnable = new Runnable() {
             @Override
             public void run() {
                 view.evaluateJavascript("updateCallBack({\n" +
                         "                    step: 0,\n" +
-                        "                    file: '" + Updates.servUrl + "/dl/AyMusic/update_android.json" + "',\n" +
+                        "                    file: '" + jsonUrl + "',\n" +
                         "                    cur: 0,\n" +
                         "                    max: 100\n" +
                         "                })", null);
@@ -44,11 +51,11 @@ public class Updates {
                                 try {
                                     view.evaluateJavascript("updateCallBack({\n" +
                                             "                    step: 0,\n" +
-                                            "                    file: '" + Updates.servUrl + "/dl/AyMusic/update_android.json" + "',\n" +
+                                            "                    file: '" + jsonUrl + "',\n" +
                                             "                    cur: 50,\n" +
                                             "                    max: 100\n" +
                                             "                })", null);
-                                    String info = Updates.servUrl.replace("https://", "https://files.") + "dl/AyMusic/Updates/android/%file%";
+                                    String info = json.getString("info");
                                     int code = json.getInt("versionCode");
                                     view.evaluateJavascript("updateCallBack({\n" +
                                             "                    step: 1,\n" +
@@ -142,6 +149,6 @@ public class Updates {
                 }
                 super.onPostExecute(s);
             }
-        }.execute(Updates.servUrl + "/dl/AyMusic/update_android.json");
+        }.execute(jsonUrl);
     }
 }
