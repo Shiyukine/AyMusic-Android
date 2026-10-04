@@ -718,8 +718,9 @@ public class WebAppInterface {
         boolean changeDur = duration != this.duration;
         boolean changeRepeat = repeat != this.repeat;
         boolean changeShuffle = shuffling != this.shuffling;
+        position = position * 1000;
         this.position = position;
-        this.duration = duration;
+        this.duration = duration * 1000;
         this.playbackRate = playbackRate;
         this.playing = isPlaying;
         this.shuffling = shuffling;
