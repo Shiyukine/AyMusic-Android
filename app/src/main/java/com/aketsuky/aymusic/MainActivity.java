@@ -332,12 +332,12 @@ public class MainActivity extends AppCompatActivity {
                     view.evaluateJavascript("window.enableFirstAutoPlay = true", null);
                 }
                 view.evaluateJavascript("if(!loaded) {" +
-                        "var intev = setInterval(() => {\n" +
+                        "var intev = setInterval(async () => {\n" +
                         "            if(!loaded) {\n" +
                         "                console.log('Attempt registerClient')\n" +
                         "                if(typeof app != 'undefined' && app) {\n" +
-                        "                    app.registerClient('Android', 'v" + BuildConfig.VERSION_NAME + "', " + BuildConfig.VERSION_CODE + ", window.boundobject, " + (BuildConfig.IS_RELEASE) + ")\n" +
-                        "                    clearInterval(intev)\n" +
+                        "                    if(await app.registerClient('Android', 'v" + BuildConfig.VERSION_NAME + "', " + BuildConfig.VERSION_CODE + ", window.boundobject, " + (BuildConfig.IS_RELEASE) + "))\n" +
+                        "                       clearInterval(intev)\n" +
                         "                }\n" +
                         "            }\n" +
                         "            else {\n" +
